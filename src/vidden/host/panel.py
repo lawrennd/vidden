@@ -1,0 +1,330 @@
+"""Panel host for the stick-man latent explorer.
+
+This module returns a Panel layout. It does not call ``servable()``.
+The only ``servable()`` call is ``examples/stick.py``.
+
+Pointer events come from Bokeh ``tap`` / ``mousemove`` on ``plot.state``,
+not HoloViews ``PointerXY``. Click toggles tracking (MATLAB
+``lvmClassVisualise``). ``Tap`` is left-click; right-click on the ARD
+histogram is ``Plot.context_menu`` / ``MenuItemClick``. Double-click
+sets the green (x) axis.
+
+The stick pane is a ``StickView``: init once, then ``modify`` writes
+data sources. Do not restyle a Plotly 3-D figure on the pointer path.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+
+from vidden.demos import load_stick_model, optimize_stick_model
+from vidden.host.events import (
+    bar_index_from_event_x,
+    disable_bokeh_context_menu,
+    event_has_shift,
+    install_bar_x_menu,
+    menu_item_dimension,
+)
+from vidden.models import (
+    assemble_latent,
+    input_sensitivity_values,
+    latent_array,
+    latent_axis_limits,
+    latent_posterior_density_grid,
+    most_significant_dims,
+    reconstruct_mean,
+    sensitivity_bar_ylim,
+)
+from vidden.views.stick import StickView, largest_training_pose
+
+
+def stick_explorer(model=None, connect=None, optimize=False):
+    """Panel app: latent scatter + Bokeh stick + two latent-axis selectors.
+
+    Loads from PCA. Use the Optimize button for Bayesian GPLVM training.
+    MATLAB ``lvmClassVisualise`` only updates after a click (``clicked``
+    toggles tracking). Hovering onto empty latent space of an untrained GP
+    is prior mean zero, which collapses the stick.
+    """
+    import holoviews as hv
+    import panel as pn
+    from holoviews import streams
+
+    pn.extension()
+    hv.extension("bokeh")
+
+    if model is None:
+        model = load_stick_model(optimize=optimize)
+    if connect is None:
+        connect = model.data["connect"]
+
+    X = latent_array(model)
+    Q = X.shape[1]
+    current = np.zeros((1, Q))
+    start_x, start_y = most_significant_dims(model)
+    dims = list(range(Q))
+    dim_x = pn.widgets.Select(label="x axis (green)", options=dims, value=start_x)
+    dim_y = pn.widgets.Select(label="y axis (red)", options=dims, value=start_y)
+    train_btn = pn.widgets.Button(label="Optimize Bayesian GPLVM", color="primary")
+    max_iters = pn.widgets.IntInput(label="max iters", value=5000, start=1, end=20000, width=120)
+    status = pn.pane.Markdown(
+        "PCA initialisation. Click Optimize to train. Then click the grey plot "
+        "to track; left-click a bar for red (y); right-click and pick a "
+        "dimension for green (x)."
+    )
+    tracking = {"on": False}
+
+    latent_pipe = streams.Pipe(data=np.column_stack((X[:, start_x], X[:, start_y])))
+    bar_pipe = streams.Pipe(data=0)
+    cursor_pipe = streams.Pipe(data=np.array([[0.0, 0.0]]))
+    bar_tick = {"n": 0}
+    stick_view = StickView(largest_training_pose(model.Y), connect)
+    stick_pane = pn.pane.Bokeh(stick_view.fig)
+
+    def _send_cursor():
+        i, j = int(dim_x.value), int(dim_y.value)
+        cursor_pipe.send(np.array([[float(current[0, i]), float(current[0, j])]]))
+
+    def _modify_stick(x, y, announce=False):
+        if x is None or y is None:
+            return
+        z = assemble_latent(current, x, y, dim_x.value, dim_y.value)
+        current[:] = z
+        stick_view.modify(reconstruct_mean(model, z))
+        _send_cursor()
+        if announce:
+            prefix = "tracking" if tracking["on"] else "frozen"
+            held = ", ".join(f"{k}={current[0, k]:.2f}" for k in range(Q))
+            status.object = f"{prefix}: [{held}]"
+
+    def _set_dim(widget, idx):
+        idx = int(idx)
+        if widget.value != idx:
+            widget.value = idx
+
+    def _refresh_views():
+        X[:, :] = latent_array(model)
+        current[:, :] = 0.0
+        sx, sy = most_significant_dims(model)
+        if dim_x.value != sx:
+            dim_x.value = sx
+        if dim_y.value != sy:
+            dim_y.value = sy
+        i, j = int(dim_x.value), int(dim_y.value)
+        latent_pipe.send(np.column_stack((X[:, i], X[:, j])))
+        _send_bars()
+        _send_cursor()
+
+    def _send_bars():
+        bar_tick["n"] += 1
+        bar_pipe.send(bar_tick["n"])
+
+    def _on_dims(*_events):
+        i, j = int(dim_x.value), int(dim_y.value)
+        latent_pipe.send(np.column_stack((X[:, i], X[:, j])))
+        _send_bars()
+        _send_cursor()
+        if tracking["on"]:
+            _modify_stick(float(current[0, i]), float(current[0, j]), announce=True)
+
+    def _optimize(_event=None):
+        train_btn.loading = True
+        train_btn.disabled = True
+        tracking["on"] = False
+        status.object = f"Optimizing Bayesian GPLVM ({int(max_iters.value)} iters)…"
+
+        def _run():
+            try:
+                optimize_stick_model(model, max_iters=int(max_iters.value))
+                _refresh_views()
+                ll = float(np.asarray(model.log_likelihood()).reshape(-1)[0])
+                status.object = (
+                    f"Optimization done (log lik {ll:.1f}). Latent position "
+                    "is back at 0. Click to set the two visible axes; switch "
+                    "bars to leave those values and set the others."
+                )
+            except Exception as exc:
+                status.object = f"Optimization failed: {exc}"
+            finally:
+                train_btn.loading = False
+                train_btn.disabled = False
+
+        doc = getattr(pn.state, "curdoc", None)
+        if doc is not None:
+            doc.add_next_tick_callback(_run)
+        else:
+            _run()
+
+    def _attach_once(fig, key):
+        flag = f"_vidden_{key}"
+        if getattr(fig, flag, False):
+            return False
+        setattr(fig, flag, True)
+        return True
+
+    def _disable_pan(fig):
+        toolbar = getattr(fig, "toolbar", None)
+        if toolbar is not None:
+            toolbar.active_drag = None
+            toolbar.active_scroll = None
+
+    def _apply_bar_x(x, widget):
+        idx = bar_index_from_event_x(x, Q)
+        if idx is None:
+            return
+        _set_dim(widget, idx)
+        which = "green (x)" if widget is dim_x else "red (y)"
+        status.object = f"{which} axis → {idx}"
+
+    def _latent_hook(plot, element):
+        fig = plot.state
+        _disable_pan(fig)
+        disable_bokeh_context_menu(fig)
+        if not _attach_once(fig, "latent_events"):
+            return
+
+        def on_tap(event):
+            tracking["on"] = not tracking["on"]
+            if tracking["on"]:
+                _modify_stick(event.x, event.y, announce=True)
+            else:
+                status.object = "Tracking off. Click the scatter to track again."
+
+        def on_move(event):
+            if tracking["on"]:
+                _modify_stick(event.x, event.y)
+
+        fig.on_event("tap", on_tap)
+        fig.on_event("mousemove", on_move)
+
+    def _bar_hook(plot, element):
+        fig = plot.state
+        _disable_pan(fig)
+        if not _attach_once(fig, "bar_events"):
+            return
+        install_bar_x_menu(fig, Q, lambda item: _apply_bar_x(menu_item_dimension(item, Q), dim_x))
+
+        def on_tap(event):
+            if event_has_shift(event):
+                _apply_bar_x(event.x, dim_x)
+            else:
+                _apply_bar_x(event.x, dim_y)
+
+        def on_doubletap(event):
+            _apply_bar_x(event.x, dim_x)
+
+        fig.on_event("tap", on_tap)
+        fig.on_event("doubletap", on_doubletap)
+
+    plot_tools = ["tap", "reset", "save"]
+
+    def _sensitivity_bars(data=None):
+        sens = input_sensitivity_values(model)
+        i, j = int(dim_x.value), int(dim_y.value)
+        color = [("#2ca02c" if k == i else "#d62728" if k == j else "#4c78a8") for k in range(Q)]
+        ylim = sensitivity_bar_ylim(sens)
+        return hv.Bars(
+            {"dimension": list(range(Q)), "sensitivity": list(sens), "c": color},
+            ["dimension"],
+            ["sensitivity", "c"],
+        ).opts(
+            color="c",
+            cmap="Category10",
+            width=420,
+            height=160,
+            xlabel="latent dimension",
+            ylabel="input sensitivity",
+            ylim=ylim,
+            xlim=(-0.5, Q - 0.5),
+            framewise=True,
+            shared_axes=False,
+            show_legend=False,
+            default_tools=plot_tools,
+            tools=plot_tools,
+            active_tools=["tap"],
+            hooks=[_bar_hook],
+        )
+
+    def _latent_view(data):
+        data = np.asarray(data)
+        xlim, ylim = latent_axis_limits(data)
+        i, j = int(dim_x.value), int(dim_y.value)
+        x1, x2, density = latent_posterior_density_grid(
+            model, i, j, xlim, ylim, default_vals=current[0]
+        )
+        img = hv.Image((x1, x2, density), ["x", "y"], "density").opts(
+            cmap="gray",
+            colorbar=False,
+            xlim=xlim,
+            ylim=ylim,
+            framewise=False,
+            default_tools=plot_tools,
+            tools=plot_tools,
+        )
+        pts = hv.Points(data, ["x", "y"]).opts(
+            size=7,
+            color="#4c78a8",
+            xlim=xlim,
+            ylim=ylim,
+            framewise=False,
+            default_tools=plot_tools,
+            tools=plot_tools,
+        )
+        return (img * pts).opts(
+            width=420,
+            height=420,
+            xlim=xlim,
+            ylim=ylim,
+            xlabel=f"latent {i}",
+            ylabel=f"latent {j}",
+            framewise=False,
+            default_tools=plot_tools,
+            tools=plot_tools,
+            active_tools=["tap"],
+            toolbar=None,
+        )
+
+    def _cross(data):
+        xy = np.asarray(data, dtype=float).reshape(1, 2)
+        return hv.Points(xy, ["x", "y"]).opts(
+            marker="x",
+            color="red",
+            size=18,
+            line_width=3,
+            default_tools=plot_tools,
+            tools=plot_tools,
+            show_legend=False,
+            framewise=False,
+        )
+
+    latent_dmap = hv.DynamicMap(_latent_view, streams=[latent_pipe])
+    cursor_dmap = hv.DynamicMap(_cross, streams=[cursor_pipe])
+    scatter = (latent_dmap * cursor_dmap).opts(
+        default_tools=plot_tools,
+        tools=plot_tools,
+        active_tools=["tap"],
+        toolbar=None,
+        show_legend=False,
+        hooks=[_latent_hook],
+    )
+    bars_dmap = hv.DynamicMap(_sensitivity_bars, streams=[bar_pipe])
+    dim_x.param.watch(_on_dims, "value")
+    dim_y.param.watch(_on_dims, "value")
+    train_btn.on_click(_optimize)
+
+    return pn.Column(
+        pn.pane.Markdown(
+            "### Stick man latent explorer\n"
+            "Starts from PCA. Optimize trains the Bayesian GPLVM. The latent "
+            "position starts at 0 (MATLAB ``latentPos``). A click only writes "
+            "the two visible axes; the rest stay where you left them. Switch "
+            "the bar axes to set the other coordinates. Left-click a bar for "
+            "red (y). Right-click the histogram and choose a dimension for "
+            "green (x); double-click a bar also sets green."
+        ),
+        pn.Row(dim_x, dim_y, train_btn, max_iters),
+        pn.Row(pn.Column(scatter, bars_dmap), stick_pane),
+        status,
+    )
+
+

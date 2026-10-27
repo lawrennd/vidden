@@ -1,7 +1,7 @@
 ---
 id: "0003"
 title: "Reconstruction views are embeddable panes, not a single app"
-status: "Proposed"
+status: "In Progress"
 priority: "High"
 created: "2026-10-27"
 last_updated: "2026-10-27"
@@ -34,10 +34,10 @@ Referia or notebook host that only needs a pane.
 
 ## Acceptance Criteria
 
-- [ ] Creating a stick view does not start a Panel server
-- [ ] The explorer layout is a return value (a pane), not a process
-- [ ] A host can hold the view and call modify on new `Y` rows
-- [ ] vidden does not import referia
+- [x] Creating a stick view does not start a Panel server
+- [x] The explorer layout is a return value (a pane), not a process
+- [x] A host can hold the view and call modify on new `Y` rows
+- [x] vidden does not import referia
 
 ## Notes
 
