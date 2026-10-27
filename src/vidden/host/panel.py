@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from vidden.demos import load_face_model, load_stick_model, optimize_stick_model
+from vidden.demos import load_face_model, load_oil_model, load_stick_model, optimize_stick_model
 from vidden.host.events import (
     bar_index_from_event_x,
     disable_bokeh_context_menu,
@@ -267,15 +267,27 @@ def latent_explorer(model, view, *, heading=None, optimize=False):
             default_tools=plot_tools,
             tools=plot_tools,
         )
-        pts = hv.Points(data, ["x", "y"]).opts(
+        point_opts = dict(
             size=7,
-            color="#4c78a8",
             xlim=xlim,
             ylim=ylim,
             framewise=False,
             default_tools=plot_tools,
             tools=plot_tools,
         )
+        labels = getattr(model, "data_labels", None)
+        if labels is not None:
+            lab = np.asarray(labels).reshape(-1)
+            if lab.shape[0] == data.shape[0]:
+                pts = hv.Points(
+                    {"x": data[:, 0], "y": data[:, 1], "label": lab},
+                    ["x", "y"],
+                    "label",
+                ).opts(color="label", cmap="Category10", show_legend=False, **point_opts)
+            else:
+                pts = hv.Points(data, ["x", "y"]).opts(color="#4c78a8", **point_opts)
+        else:
+            pts = hv.Points(data, ["x", "y"]).opts(color="#4c78a8", **point_opts)
         return (img * pts).opts(
             width=420,
             height=420,
@@ -340,6 +352,31 @@ def stick_explorer(model=None, connect=None, optimize=False):
         model,
         view,
         heading="### Stick man latent explorer\n" + _DEFAULT_HEADING,
+    )
+
+
+def oil_explorer(model=None, optimize=False):
+    """Oil-flow explorer: ``VectorView`` on ``latent_explorer``.
+
+    Default data is ``pods.datasets.oil()`` (12-D observations, three
+    labels), a 7-D Bayesian GPLVM as in ``bgplvm_oil``.
+    """
+    from vidden.views.stick import largest_training_pose
+    from vidden.views.vector import VectorView, vector_y_limits
+
+    if model is None:
+        model = load_oil_model(optimize=optimize)
+    Y = np.asarray(model.Y, dtype=float)
+    view = VectorView(largest_training_pose(Y), limits=vector_y_limits(Y))
+    return latent_explorer(
+        model,
+        view,
+        heading=(
+            "### Oil-flow latent explorer\n"
+            "12-D oil as a line of index against value. Seven latent "
+            "axes; switch bars after Optimize. Labels colour the scatter "
+            "when the model carries ``data_labels``.\n" + _DEFAULT_HEADING
+        ),
     )
 
 

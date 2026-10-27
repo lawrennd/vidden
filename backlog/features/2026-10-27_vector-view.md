@@ -1,7 +1,7 @@
 ---
 id: 2026-10-27_vector-view
 title: VectorView Visualise/Modify for a packed observation vector
-status: Ready
+status: Completed
 priority: High
 created: "2026-10-27"
 last_updated: "2026-10-27"
@@ -28,9 +28,9 @@ ColumnDataSource. Creating the view does not call `servable()`.
 
 ## Acceptance Criteria
 
-- [ ] `modify` does not change axis ranges
-- [ ] Line length equals `Y.shape[1]`
-- [ ] Creating the view does not call `servable()`
+- [x] `modify` does not change axis ranges
+- [x] Line length equals `Y.shape[1]`
+- [x] Creating the view does not call `servable()`
 
 ## Related
 
@@ -41,3 +41,5 @@ ColumnDataSource. Creating the view does not call `servable()`.
 ### 2026-10-27
 
 Task created when CIP-0004 was Accepted.
+
+`VectorView` in `vidden.views.vector`.

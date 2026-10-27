@@ -23,8 +23,8 @@ pip install -e ".[explore,gpy]"
 ```
 
 `explore` pulls HoloViews, Panel, and Bokeh. `gpy` is needed for the
-stick-man and doodle demos (GPy plus [pods](https://github.com/lawrennd/pods)
-for the OSU motion data). Jupyter imports need this editable install.
+stick, doodle, and oil demos (GPy plus [pods](https://github.com/lawrennd/pods)
+for OSU motion and oil-flow). Jupyter imports need this editable install.
 `panel serve examples/...` from the repository root also works without
 it: the example scripts put `src/` on `sys.path`.
 
@@ -134,12 +134,36 @@ A static grid of decoded stamps is a notebook diagnostic, not how we
 present the space. User-drawn families and the drawing studio are a
 later CIP.
 
+## Demo: oil flow
+
+12-D oil observations as a line of index against value (`VectorView`),
+on a 7-D Bayesian GPLVM. Same host as the stick man.
+
+From the repository root:
+
+```bash
+panel serve examples/oil.py --show
+```
+
+Or in Jupyter:
+
+```python
+from vidden.host.panel import oil_explorer
+
+oil_explorer()
+```
+
+The model starts **untrained**. Optimize first, then click the grey
+plot. Switch ARD bars to set the five leftover latent axes. Training
+labels colour the scatter.
+
 ## What is not here yet
 
-Oil-flow and Olivetti faces still run through GPy's deprecated
-`visualize` module. Correspondence, `doodle_studio`, and loading
-`doodles/<family>/` are still on the GPy doodle branch. Static GPy
-plots (`plot`, `plot_latent`, `plot_confidence`) stay in GPy.
+Brendan / Olivetti faces still run through GPy's deprecated `visualize`
+module (CIP-0005). Hierarchical GP-LVM is CIP-0006. Correspondence,
+`doodle_studio`, and loading `doodles/<family>/` are still on the GPy
+doodle branch. Static GPy plots (`plot`, `plot_latent`,
+`plot_confidence`) stay in GPy.
 
 ## Project management
 

@@ -1,7 +1,7 @@
 ---
 id: 2026-10-27_oil-explorer-demo
 title: Oil-flow explorer demo on VectorView
-status: Ready
+status: Completed
 priority: High
 created: "2026-10-27"
 last_updated: "2026-10-27"
@@ -29,9 +29,9 @@ present. Same Optimize then click-to-track story as stick and doodle.
 
 ## Acceptance Criteria
 
-- [ ] `panel serve examples/oil.py --show` is the documented entry
-- [ ] `oil_explorer` uses `latent_explorer` and `VectorView`
-- [ ] Explorer construction test `importorskip`s GPy / Panel / pods
+- [x] `panel serve examples/oil.py --show` is the documented entry
+- [x] `oil_explorer` uses `latent_explorer` and `VectorView`
+- [x] Explorer construction test `importorskip`s GPy / Panel / pods
 
 ## Related
 
@@ -43,3 +43,5 @@ present. Same Optimize then click-to-track story as stick and doodle.
 ### 2026-10-27
 
 Task created when CIP-0004 was Accepted.
+
+`oil_explorer` plus `examples/oil.py`. Labels colour the scatter.

@@ -1,7 +1,7 @@
 ---
 id: 2026-10-27_oil-explorer-readme
 title: README section for the oil explorer demo
-status: Ready
+status: Completed
 priority: Medium
 created: "2026-10-27"
 last_updated: "2026-10-27"
@@ -28,8 +28,8 @@ Document `panel serve examples/oil.py --show` and Jupyter
 
 ## Acceptance Criteria
 
-- [ ] README has an oil demo section
-- [ ] Commands match `examples/oil.py`
+- [x] README has an oil demo section
+- [x] Commands match `examples/oil.py`
 
 ## Related
 
@@ -40,3 +40,5 @@ Document `panel serve examples/oil.py --show` and Jupyter
 ### 2026-10-27
 
 Task created when CIP-0004 was Accepted.
+
+README oil section added.

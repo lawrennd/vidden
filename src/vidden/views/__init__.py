@@ -7,5 +7,6 @@ call ``modify(y)``.
 
 from vidden.views.doodle import DoodleView
 from vidden.views.stick import StickView
+from vidden.views.vector import VectorView
 
-__all__ = ["DoodleView", "StickView"]
+__all__ = ["DoodleView", "StickView", "VectorView"]
