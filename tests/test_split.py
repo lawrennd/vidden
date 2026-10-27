@@ -21,6 +21,7 @@ def test_explore_reexports_view_and_host():
         oil_explorer,
         StickView,
         stick_explorer,
+        tree_explorer,
         VectorView,
     )
     from vidden.host.panel import (
@@ -30,6 +31,7 @@ def test_explore_reexports_view_and_host():
         oil_explorer as host_oil,
         stick_explorer as host_explorer,
     )
+    from vidden.host.tree import tree_explorer as host_tree
     from vidden.views.doodle import DoodleView as Doodle
     from vidden.views.image import ImageView as Image
     from vidden.views.stick import StickView as View
@@ -43,6 +45,7 @@ def test_explore_reexports_view_and_host():
     assert doodle_explorer is host_doodle
     assert oil_explorer is host_oil
     assert face_explorer is host_face
+    assert tree_explorer is host_tree
     assert latent_explorer is host_latent
 
 

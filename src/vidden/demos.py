@@ -5,6 +5,13 @@ from __future__ import annotations
 import numpy as np
 
 
+def load_synthetic_tree(n=16):
+    """Gait parent plus two arm leaves on one torso. No GPy ``HGPLVM`` class."""
+    from vidden.tree import make_synthetic_hierarchy
+
+    return make_synthetic_hierarchy(n=n)
+
+
 def load_stick_model(optimize=False):
     """OSU stick-man Bayesian GPLVM without importing matplotlib.
 
