@@ -12,6 +12,7 @@ Standalone (from the repository root)::
     panel serve examples/doodle.py --show
     panel serve examples/oil.py --show
     panel serve examples/faces.py --show
+    panel serve examples/tree.py --show
 """
 
 from vidden.demos import (
@@ -19,6 +20,7 @@ from vidden.demos import (
     load_face_model,
     load_oil_model,
     load_stick_model,
+    load_synthetic_tree,
     optimize_stick_model,
 )
 from vidden.host.events import (
@@ -36,6 +38,7 @@ from vidden.host.panel import (
     oil_explorer,
     stick_explorer,
 )
+from vidden.host.tree import tree_explorer
 from vidden.models import (
     assemble_latent,
     assemble_latent_nearest,
@@ -69,6 +72,7 @@ __all__ = [
     "doodle_explorer",
     "face_explorer",
     "latent_explorer",
+    "tree_explorer",
     "latent_training_points",
     "oil_explorer",
     "assemble_latent",
@@ -84,6 +88,7 @@ __all__ = [
     "latent_axis_limits",
     "latent_mean_row",
     "latent_posterior_density_grid",
+    "load_synthetic_tree",
     "load_brendan_model",
     "load_face_model",
     "load_oil_model",

@@ -182,13 +182,39 @@ plot. If the face is on its side, the Fortran/transpose flags are
 wrong — they must stay explicit (Olivetti is 112×92, C order, no
 transpose).
 
+## Demo: hierarchical GP-LVM
+
+A **tree** of 2-D latent scatters, not another reconstruction on
+`latent_explorer`. The top space is gait (phase × style). Its output
+is the two arm spaces; those reconstruct left and right arms on a
+shared torso (Lawrence and Moore, ICML 2007). Click gait, then move —
+both arms should swing. The figure is one person, not two floating
+chains.
+
+From the repository root:
+
+```bash
+panel serve examples/tree.py --show
+```
+
+Or in Jupyter:
+
+```python
+from vidden.host.tree import tree_explorer
+
+tree_explorer()
+```
+
+The synthetic tree uses a local interpolant, so it does not need a GPy
+`HGPLVM` class. Dynamics sliders are not in this first pass.
+CMU walk is later.
+
 ## What is not here yet
 
 Olivetti can use the same `ImageView` with different reshape flags;
-there is no separate demo yet. Hierarchical GP-LVM is CIP-0006.
-Correspondence, `doodle_studio`, and loading `doodles/<family>/` are
-still on the GPy doodle branch. Static GPy plots (`plot`,
-`plot_latent`, `plot_confidence`) stay in GPy.
+there is no separate demo yet. Correspondence, `doodle_studio`, and
+loading `doodles/<family>/` are still on the GPy doodle branch. Static
+GPy plots (`plot`, `plot_latent`, `plot_confidence`) stay in GPy.
 
 ## Project management
 

@@ -12,6 +12,7 @@ from vidden.host.panel import (
     oil_explorer,
     stick_explorer,
 )
+from vidden.host.tree import tree_explorer
 
 __all__ = [
     "doodle_explorer",
@@ -20,4 +21,5 @@ __all__ = [
     "latent_training_points",
     "oil_explorer",
     "stick_explorer",
+    "tree_explorer",
 ]
