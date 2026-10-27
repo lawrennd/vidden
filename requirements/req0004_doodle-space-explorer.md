@@ -1,7 +1,7 @@
 ---
 id: "0004"
 title: "A doodle family can be explored in the same latent viewer as the stick man"
-status: "Proposed"
+status: "In Progress"
 priority: "High"
 created: "2026-10-27"
 last_updated: "2026-10-27"
