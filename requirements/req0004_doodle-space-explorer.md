@@ -1,7 +1,7 @@
 ---
 id: "0004"
 title: "A doodle family can be explored in the same latent viewer as the stick man"
-status: "In Progress"
+status: "Implemented"
 priority: "High"
 created: "2026-10-27"
 last_updated: "2026-10-27"
@@ -35,13 +35,13 @@ anyone with a family of aligned doodles (faces, bugs, …).
 
 ## Acceptance Criteria
 
-- [ ] A doodle reconstruction updates from `model.predict` on pointer
+- [x] A doodle reconstruction updates from `model.predict` on pointer
       motion after a click
-- [ ] Training doodles appear as points on the latent scatter
-- [ ] Missing strokes (NaN in the packed vector) stay missing in the
+- [x] Training doodles appear as points on the latent scatter
+- [x] Missing strokes (NaN in the packed vector) stay missing in the
       drawing
-- [ ] The same host runs in Jupyter and as `panel serve`
-- [ ] No matplotlib GUI backend is required for exploration
+- [x] The same host runs in Jupyter and as `panel serve`
+- [x] No matplotlib GUI backend is required for exploration
 
 ## Notes
 

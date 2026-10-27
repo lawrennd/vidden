@@ -1,7 +1,7 @@
-"""Panel host for the stick-man latent explorer.
+"""Panel host for latent explorers.
 
-This module returns a Panel layout. It does not call ``servable()``.
-The only ``servable()`` call is ``examples/stick.py``.
+``latent_explorer(model, view)`` returns a layout. It does not call
+``servable()``. Example scripts under ``examples/`` are the serve entries.
 
 Pointer events come from Bokeh ``tap`` / ``mousemove`` on ``plot.state``,
 not HoloViews ``PointerXY``. Click toggles tracking (MATLAB
@@ -9,15 +9,15 @@ not HoloViews ``PointerXY``. Click toggles tracking (MATLAB
 histogram is ``Plot.context_menu`` / ``MenuItemClick``. Double-click
 sets the green (x) axis.
 
-The stick pane is a ``StickView``: init once, then ``modify`` writes
-data sources. Do not restyle a Plotly 3-D figure on the pointer path.
+The reconstruction pane is a view with ``.fig`` and ``modify(y)``. Init
+once, then only write data sources.
 """
 
 from __future__ import annotations
 
 import numpy as np
 
-from vidden.demos import load_stick_model, optimize_stick_model
+from vidden.demos import load_face_model, load_stick_model, optimize_stick_model
 from vidden.host.events import (
     bar_index_from_event_x,
     disable_bokeh_context_menu,
@@ -37,14 +37,23 @@ from vidden.models import (
 )
 from vidden.views.stick import StickView, largest_training_pose
 
+_DEFAULT_HEADING = (
+    "Starts from PCA. Optimize trains the model. The latent position "
+    "starts at 0 (MATLAB ``latentPos``). A click only writes the two "
+    "visible axes; the rest stay where you left them. Switch the bar "
+    "axes to set the other coordinates. Left-click a bar for red (y). "
+    "Right-click the histogram and choose a dimension for green (x); "
+    "double-click a bar also sets green."
+)
 
-def stick_explorer(model=None, connect=None, optimize=False):
-    """Panel app: latent scatter + Bokeh stick + two latent-axis selectors.
 
-    Loads from PCA. Use the Optimize button for Bayesian GPLVM training.
-    MATLAB ``lvmClassVisualise`` only updates after a click (``clicked``
-    toggles tracking). Hovering onto empty latent space of an untrained GP
-    is prior mean zero, which collapses the stick.
+def latent_explorer(model, view, *, heading=None, optimize=False):
+    """Panel layout: latent scatter + reconstruction view + axis selectors.
+
+    ``view`` must provide ``.fig`` and ``modify(y)``. Loads from whatever
+    initialisation the caller used. Use the Optimize button for training.
+    MATLAB ``lvmClassVisualise`` only updates after a click. Hovering onto
+    empty latent space of an untrained GP is prior mean zero.
     """
     import holoviews as hv
     import panel as pn
@@ -53,10 +62,8 @@ def stick_explorer(model=None, connect=None, optimize=False):
     pn.extension()
     hv.extension("bokeh")
 
-    if model is None:
-        model = load_stick_model(optimize=optimize)
-    if connect is None:
-        connect = model.data["connect"]
+    if optimize:
+        optimize_stick_model(model)
 
     X = latent_array(model)
     Q = X.shape[1]
@@ -78,19 +85,18 @@ def stick_explorer(model=None, connect=None, optimize=False):
     bar_pipe = streams.Pipe(data=0)
     cursor_pipe = streams.Pipe(data=np.array([[0.0, 0.0]]))
     bar_tick = {"n": 0}
-    stick_view = StickView(largest_training_pose(model.Y), connect)
-    stick_pane = pn.pane.Bokeh(stick_view.fig)
+    view_pane = pn.pane.Bokeh(view.fig)
 
     def _send_cursor():
         i, j = int(dim_x.value), int(dim_y.value)
         cursor_pipe.send(np.array([[float(current[0, i]), float(current[0, j])]]))
 
-    def _modify_stick(x, y, announce=False):
+    def _modify_view(x, y, announce=False):
         if x is None or y is None:
             return
         z = assemble_latent(current, x, y, dim_x.value, dim_y.value)
         current[:] = z
-        stick_view.modify(reconstruct_mean(model, z))
+        view.modify(reconstruct_mean(model, z))
         _send_cursor()
         if announce:
             prefix = "tracking" if tracking["on"] else "frozen"
@@ -125,13 +131,13 @@ def stick_explorer(model=None, connect=None, optimize=False):
         _send_bars()
         _send_cursor()
         if tracking["on"]:
-            _modify_stick(float(current[0, i]), float(current[0, j]), announce=True)
+            _modify_view(float(current[0, i]), float(current[0, j]), announce=True)
 
     def _optimize(_event=None):
         train_btn.loading = True
         train_btn.disabled = True
         tracking["on"] = False
-        status.object = f"Optimizing Bayesian GPLVM ({int(max_iters.value)} iters)…"
+        status.object = f"Optimizing ({int(max_iters.value)} iters)…"
 
         def _run():
             try:
@@ -186,13 +192,13 @@ def stick_explorer(model=None, connect=None, optimize=False):
         def on_tap(event):
             tracking["on"] = not tracking["on"]
             if tracking["on"]:
-                _modify_stick(event.x, event.y, announce=True)
+                _modify_view(event.x, event.y, announce=True)
             else:
                 status.object = "Tracking off. Click the scatter to track again."
 
         def on_move(event):
             if tracking["on"]:
-                _modify_stick(event.x, event.y)
+                _modify_view(event.x, event.y)
 
         fig.on_event("tap", on_tap)
         fig.on_event("mousemove", on_move)
@@ -312,19 +318,54 @@ def stick_explorer(model=None, connect=None, optimize=False):
     dim_y.param.watch(_on_dims, "value")
     train_btn.on_click(_optimize)
 
+    if heading is None:
+        heading = "### Latent explorer\n" + _DEFAULT_HEADING
+
     return pn.Column(
-        pn.pane.Markdown(
-            "### Stick man latent explorer\n"
-            "Starts from PCA. Optimize trains the Bayesian GPLVM. The latent "
-            "position starts at 0 (MATLAB ``latentPos``). A click only writes "
-            "the two visible axes; the rest stay where you left them. Switch "
-            "the bar axes to set the other coordinates. Left-click a bar for "
-            "red (y). Right-click the histogram and choose a dimension for "
-            "green (x); double-click a bar also sets green."
-        ),
+        pn.pane.Markdown(heading),
         pn.Row(dim_x, dim_y, train_btn, max_iters),
-        pn.Row(pn.Column(scatter, bars_dmap), stick_pane),
+        pn.Row(pn.Column(scatter, bars_dmap), view_pane),
         status,
     )
 
 
+def stick_explorer(model=None, connect=None, optimize=False):
+    """Stick-man explorer: ``StickView`` on ``latent_explorer``."""
+    if model is None:
+        model = load_stick_model(optimize=optimize)
+    if connect is None:
+        connect = model.data["connect"]
+    view = StickView(largest_training_pose(model.Y), connect)
+    return latent_explorer(
+        model,
+        view,
+        heading="### Stick man latent explorer\n" + _DEFAULT_HEADING,
+    )
+
+
+def doodle_explorer(model=None, strokes=None, limits=None, optimize=False):
+    """Doodle explorer: ``DoodleView`` on ``latent_explorer``.
+
+    Default data is generated cartoon faces with known smile and
+    roundness, not a user-drawn family.
+    """
+    from vidden.doodle import DOODLE_LIMITS, FACE_STROKES
+    from vidden.views.doodle import DoodleView
+
+    if model is None:
+        model = load_face_model(optimize=optimize)
+    if strokes is None:
+        strokes = getattr(model, "doodle_strokes", FACE_STROKES)
+    if limits is None:
+        limits = DOODLE_LIMITS
+    view = DoodleView(largest_training_pose(model.Y), strokes, limits=limits)
+    return latent_explorer(
+        model,
+        view,
+        heading=(
+            "### Latent doodle space\n"
+            "Generated faces on a smile × roundness grid. Optimize, then "
+            "click the grey plot to synthesize. This is the paper's click-"
+            "to-generate demo, not an interpolation grid.\n" + _DEFAULT_HEADING
+        ),
+    )

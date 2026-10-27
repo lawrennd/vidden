@@ -1,7 +1,7 @@
 ---
 id: 2026-10-27_doodle-view
 title: DoodleView Visualise/Modify for packed stroke vectors
-status: Ready
+status: Completed
 priority: High
 created: "2026-10-27"
 last_updated: "2026-10-27"
@@ -29,10 +29,10 @@ the ColumnDataSource. NaN strokes are omitted. Closed strokes close.
 
 ## Acceptance Criteria
 
-- [ ] `modify` does not change axis ranges
-- [ ] A stroke that is all-NaN (or contains NaN) is not drawn at the origin
-- [ ] Closed specs repeat the first vertex
-- [ ] Creating the view does not call `servable()`
+- [x] `modify` does not change axis ranges
+- [x] A stroke that is all-NaN (or contains NaN) is not drawn at the origin
+- [x] Closed specs repeat the first vertex
+- [x] Creating the view does not call `servable()`
 
 ## Related
 
@@ -44,3 +44,5 @@ the ColumnDataSource. NaN strokes are omitted. Closed strokes close.
 ### 2026-10-27
 
 Task created when CIP-0003 was Accepted.
+
+`DoodleView` in `vidden.views.doodle`. Packed `Y` plus `StrokeSpec`s.

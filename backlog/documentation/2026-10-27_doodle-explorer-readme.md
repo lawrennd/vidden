@@ -1,7 +1,7 @@
 ---
 id: 2026-10-27_doodle-explorer-readme
 title: README section for the doodle explorer demo
-status: Ready
+status: Completed
 priority: Medium
 created: "2026-10-27"
 last_updated: "2026-10-27"
@@ -29,8 +29,8 @@ demo. Same untrained-GP warning as the stick man.
 
 ## Acceptance Criteria
 
-- [ ] README has a doodle demo section
-- [ ] Commands match `examples/doodle.py`
+- [x] README has a doodle demo section
+- [x] Commands match `examples/doodle.py`
 
 ## Related
 
@@ -41,3 +41,5 @@ demo. Same untrained-GP warning as the stick man.
 ### 2026-10-27
 
 Task created when CIP-0003 was Accepted.
+
+README section added; grid is not the lead demo.

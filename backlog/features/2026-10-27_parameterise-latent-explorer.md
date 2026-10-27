@@ -1,7 +1,7 @@
 ---
 id: 2026-10-27_parameterise-latent-explorer
 title: Parameterise latent_explorer on a reconstruction view
-status: Ready
+status: Completed
 priority: High
 created: "2026-10-27"
 last_updated: "2026-10-27"
@@ -28,10 +28,10 @@ that builds `StickView` and calls the host.
 
 ## Acceptance Criteria
 
-- [ ] `latent_explorer(model, view)` returns a Panel layout
-- [ ] `stick_explorer()` still builds without serving
-- [ ] Pointer motion calls `view.modify` with `reconstruct_mean`
-- [ ] No second copy of the click-to-track / ARD-bar logic
+- [x] `latent_explorer(model, view)` returns a Panel layout
+- [x] `stick_explorer()` still builds without serving
+- [x] Pointer motion calls `view.modify` with `reconstruct_mean`
+- [x] No second copy of the click-to-track / ARD-bar logic
 
 ## Related
 
@@ -42,3 +42,6 @@ that builds `StickView` and calls the host.
 ### 2026-10-27
 
 Task created when CIP-0003 was Accepted.
+
+Host is `latent_explorer(model, view)`. Stick and doodle wrappers only
+build a view.

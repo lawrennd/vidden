@@ -5,6 +5,7 @@ optimize a model, or interpret pointer events. Hosts hold the view and
 call ``modify(y)``.
 """
 
+from vidden.views.doodle import DoodleView
 from vidden.views.stick import StickView
 
-__all__ = ["StickView"]
+__all__ = ["DoodleView", "StickView"]

@@ -2,15 +2,17 @@
 
 Jupyter::
 
-    from vidden.explore import stick_explorer
+    from vidden.explore import doodle_explorer, stick_explorer
     stick_explorer()
+    doodle_explorer()
 
 Standalone (from the repository root)::
 
     panel serve examples/stick.py --show
+    panel serve examples/doodle.py --show
 """
 
-from vidden.demos import load_stick_model, optimize_stick_model
+from vidden.demos import load_face_model, load_stick_model, optimize_stick_model
 from vidden.host.events import (
     bar_index_from_event_x,
     disable_bokeh_context_menu,
@@ -18,7 +20,7 @@ from vidden.host.events import (
     install_bar_x_menu,
     menu_item_dimension,
 )
-from vidden.host.panel import stick_explorer
+from vidden.host.panel import doodle_explorer, latent_explorer, stick_explorer
 from vidden.models import (
     assemble_latent,
     assemble_latent_nearest,
@@ -31,6 +33,7 @@ from vidden.models import (
     reconstruct_mean,
     sensitivity_bar_ylim,
 )
+from vidden.views.doodle import DoodleView
 from vidden.views.stick import (
     StickView,
     cubic_axis_limits,
@@ -42,7 +45,10 @@ from vidden.views.stick import (
 )
 
 __all__ = [
+    "DoodleView",
     "StickView",
+    "doodle_explorer",
+    "latent_explorer",
     "assemble_latent",
     "assemble_latent_nearest",
     "bar_index_from_event_x",
@@ -56,6 +62,7 @@ __all__ = [
     "latent_axis_limits",
     "latent_mean_row",
     "latent_posterior_density_grid",
+    "load_face_model",
     "load_stick_model",
     "matlab_view_project",
     "menu_item_dimension",

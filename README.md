@@ -22,8 +22,8 @@ cd vidden
 pip install -e ".[explore,gpy]"
 ```
 
-`explore` pulls HoloViews, Panel, and Bokeh. `gpy` is only needed for
-the stick-man demo (GPy plus [pods](https://github.com/lawrennd/pods)
+`explore` pulls HoloViews, Panel, and Bokeh. `gpy` is needed for the
+stick-man and doodle demos (GPy plus [pods](https://github.com/lawrennd/pods)
 for the OSU motion data).
 
 ## Demo: OSU stick man
@@ -93,12 +93,49 @@ that ships with the dataset. Here `np.eye(3)` just draws three joints.
 `from vidden.explore import stick_explorer` still works. That module is a
 compatibility import; new code should use `vidden.host.panel`.
 
+## Demo: latent doodle space
+
+Generated cartoon faces on a smile × roundness grid. This is Baxter and
+Anjyo's click-to-synthesize demo, not an interpolation grid.
+
+From the repository root:
+
+```bash
+panel serve examples/doodle.py --show
+```
+
+Or in Jupyter:
+
+```python
+from vidden.host.panel import doodle_explorer
+
+doodle_explorer()
+```
+
+The reconstruction pane is a packed doodle (`DoodleView`). The latent
+scatter, ARD bars, Optimize button, and click-to-track behaviour are
+the same host as the stick man (`latent_explorer`).
+
+The model starts **untrained**. Empty latent space is prior mean zero,
+which collapses the face. Optimize first, then click the grey plot.
+
+1. Click **Optimize Bayesian GPLVM** and wait for the log likelihood.
+2. Click the grey latent plot once to start tracking. Move the pointer.
+3. The mouth and head should follow smile and roundness. If every
+   reconstruction looks the same, the GP mean is still the prior, or
+   the two visible axes are not the ones that carry those factors —
+   switch bars as in the stick demo.
+
+A static grid of decoded stamps is a notebook diagnostic, not how we
+present the space. User-drawn families and the drawing studio are a
+later CIP.
+
 ## What is not here yet
 
 Oil-flow and Olivetti faces still run through GPy's deprecated
-`visualize` module. Latent doodle space (Baxter and Anjyo) will use
-this same explorer with a doodle reconstruction pane — see CIP-0003.
-Static GPy plots (`plot`, `plot_latent`, `plot_confidence`) stay in GPy.
+`visualize` module. Correspondence, `doodle_studio`, and loading
+`doodles/<family>/` are still on the GPy doodle branch. Static GPy
+plots (`plot`, `plot_latent`, `plot_confidence`) stay in GPy.
 
 ## Project management
 
