@@ -47,6 +47,25 @@ _DEFAULT_HEADING = (
 )
 
 
+def latent_training_points(xy, labels=None):
+    """Latent scatter Points. Colour by ``labels`` when length matches."""
+    import holoviews as hv
+
+    xy = np.asarray(xy, dtype=float)
+    if xy.ndim != 2 or xy.shape[1] < 2:
+        xy = np.atleast_2d(xy)
+    xy = xy[:, :2]
+    if labels is not None:
+        lab = np.asarray(labels).reshape(-1)
+        if lab.shape[0] == xy.shape[0]:
+            return hv.Points(
+                {"x": xy[:, 0], "y": xy[:, 1], "label": lab},
+                ["x", "y"],
+                "label",
+            )
+    return hv.Points(xy, ["x", "y"])
+
+
 def latent_explorer(model, view, *, heading=None, optimize=False):
     """Panel layout: latent scatter + reconstruction view + axis selectors.
 
@@ -275,19 +294,11 @@ def latent_explorer(model, view, *, heading=None, optimize=False):
             default_tools=plot_tools,
             tools=plot_tools,
         )
-        labels = getattr(model, "data_labels", None)
-        if labels is not None:
-            lab = np.asarray(labels).reshape(-1)
-            if lab.shape[0] == data.shape[0]:
-                pts = hv.Points(
-                    {"x": data[:, 0], "y": data[:, 1], "label": lab},
-                    ["x", "y"],
-                    "label",
-                ).opts(color="label", cmap="Category10", show_legend=False, **point_opts)
-            else:
-                pts = hv.Points(data, ["x", "y"]).opts(color="#4c78a8", **point_opts)
+        pts = latent_training_points(data, getattr(model, "data_labels", None))
+        if "label" in pts.vdims:
+            pts = pts.opts(color="label", cmap="Category10", show_legend=False, **point_opts)
         else:
-            pts = hv.Points(data, ["x", "y"]).opts(color="#4c78a8", **point_opts)
+            pts = pts.opts(color="#4c78a8", **point_opts)
         return (img * pts).opts(
             width=420,
             height=420,

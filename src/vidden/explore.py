@@ -21,7 +21,13 @@ from vidden.host.events import (
     install_bar_x_menu,
     menu_item_dimension,
 )
-from vidden.host.panel import doodle_explorer, latent_explorer, oil_explorer, stick_explorer
+from vidden.host.panel import (
+    doodle_explorer,
+    latent_explorer,
+    latent_training_points,
+    oil_explorer,
+    stick_explorer,
+)
 from vidden.models import (
     assemble_latent,
     assemble_latent_nearest,
@@ -52,6 +58,7 @@ __all__ = [
     "VectorView",
     "doodle_explorer",
     "latent_explorer",
+    "latent_training_points",
     "oil_explorer",
     "assemble_latent",
     "assemble_latent_nearest",
