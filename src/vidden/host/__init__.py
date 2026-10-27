@@ -6,6 +6,7 @@ it is not Referia (whose "panel" is a review-page region).
 
 from vidden.host.panel import (
     doodle_explorer,
+    face_explorer,
     latent_explorer,
     latent_training_points,
     oil_explorer,
@@ -14,6 +15,7 @@ from vidden.host.panel import (
 
 __all__ = [
     "doodle_explorer",
+    "face_explorer",
     "latent_explorer",
     "latent_training_points",
     "oil_explorer",

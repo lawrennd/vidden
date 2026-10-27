@@ -1,7 +1,7 @@
 ---
 id: 2026-10-27_brendan-faces-demo
 title: Brendan faces explorer demo on ImageView
-status: Ready
+status: Completed
 priority: High
 created: "2026-10-27"
 last_updated: "2026-10-27"
@@ -30,10 +30,10 @@ Q. Olivetti is the same view, optional later.
 
 ## Acceptance Criteria
 
-- [ ] `panel serve examples/faces.py --show` is the documented entry
-- [ ] `face_explorer` uses `latent_explorer` and `ImageView`
-- [ ] Explorer construction test `importorskip`s GPy / Panel / pods
-- [ ] Reshape matches GPy Brendan flags so the face is upright
+- [x] `panel serve examples/faces.py --show` is the documented entry
+- [x] `face_explorer` uses `latent_explorer` and `ImageView`
+- [x] Explorer construction test `importorskip`s GPy / Panel / pods
+- [x] Reshape matches GPy Brendan flags so the face is upright
 
 ## Related
 
@@ -45,3 +45,9 @@ Q. Olivetti is the same view, optional later.
 ### 2026-10-27
 
 Task created when CIP-0005 was Accepted.
+
+### 2026-10-27
+
+`load_brendan_model` (Q=2, M=20, lengthscale 0.5), `face_explorer`,
+`examples/faces.py`. Olivetti flags are on `ImageView` but there is
+no separate demo.

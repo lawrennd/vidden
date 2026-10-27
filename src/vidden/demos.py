@@ -63,6 +63,44 @@ def load_oil_model(optimize=False, N=200, input_dim=7, num_inducing=40):
     return model
 
 
+def load_brendan_model(optimize=False, input_dim=2, num_inducing=20, n=None):
+    """Brendan faces as a 2-D Bayesian GPLVM.
+
+    Same normalisation as GPy ``brendan_faces``. Image flags are attached
+    on the model for ``face_explorer``. Q stays 2.
+    """
+    import GPy
+    from GPy.models import BayesianGPLVM
+
+    from vidden.views.image import BRENDAN_IMAGE
+
+    try:
+        import pods
+
+        data = pods.datasets.brendan_faces()
+    except ImportError:
+        data = GPy.util.datasets.brendan_faces()
+
+    Y = np.asarray(data["Y"], dtype=float)
+    if n is not None:
+        Y = Y[: int(n)]
+    Yn = Y - Y.mean()
+    Yn /= Yn.std()
+    Q = int(input_dim)
+    M = min(int(num_inducing), Yn.shape[0])
+    kernel = GPy.kern.RBF(Q, lengthscale=np.repeat(0.5, Q), ARD=True)
+    model = BayesianGPLVM(Yn, Q, init="PCA", num_inducing=M, kernel=kernel)
+    model.likelihood.variance = 0.001
+    model.image_dimensions = BRENDAN_IMAGE["dimensions"]
+    model.image_transpose = BRENDAN_IMAGE["transpose"]
+    model.image_order = BRENDAN_IMAGE["order"]
+    model.image_invert = BRENDAN_IMAGE["invert"]
+    model.data = data
+    if optimize:
+        optimize_stick_model(model)
+    return model
+
+
 def load_face_model(optimize=False, input_dim=2, num_inducing=10):
     """Smile × roundness cartoon faces as a 2-D Bayesian GPLVM.
 

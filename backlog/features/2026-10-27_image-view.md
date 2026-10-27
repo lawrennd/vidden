@@ -1,7 +1,7 @@
 ---
 id: 2026-10-27_image-view
 title: ImageView Visualise/Modify for a reshaped greyscale face
-status: Ready
+status: Completed
 priority: High
 created: "2026-10-27"
 last_updated: "2026-10-27"
@@ -29,9 +29,9 @@ freezes the pixel box. `modify` only writes image data.
 
 ## Acceptance Criteria
 
-- [ ] Reshape tests cover C vs F and transpose without GPy
-- [ ] `modify` does not change axis ranges
-- [ ] Creating the view does not call `servable()`
+- [x] Reshape tests cover C vs F and transpose without GPy
+- [x] `modify` does not change axis ranges
+- [x] Creating the view does not call `servable()`
 
 ## Related
 
@@ -43,3 +43,8 @@ freezes the pixel box. `modify` only writes image data.
 ### 2026-10-27
 
 Task created when CIP-0005 was Accepted. Starts after the oil demo.
+
+### 2026-10-27
+
+`ImageView` and `reshape_image` in `src/vidden/views/image.py`. Tests
+in `tests/test_image.py`.
