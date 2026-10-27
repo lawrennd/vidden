@@ -96,8 +96,9 @@ compatibility import; new code should use `vidden.host.panel`.
 ## What is not here yet
 
 Oil-flow and Olivetti faces still run through GPy's deprecated
-`visualize` module. They will land as more views on this host. Static
-GPy plots (`plot`, `plot_latent`, `plot_confidence`) stay in GPy.
+`visualize` module. Latent doodle space (Baxter and Anjyo) will use
+this same explorer with a doodle reconstruction pane — see CIP-0003.
+Static GPy plots (`plot`, `plot_latent`, `plot_confidence`) stay in GPy.
 
 ## Project management
 
