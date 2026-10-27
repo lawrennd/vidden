@@ -8,9 +8,33 @@ from vidden.doodle import (
     face_from_factors,
     make_face_dataset,
     pack_doodle,
+    resample_stroke,
     unpack_doodle,
 )
 from vidden.views.doodle import DoodleView, stroke_polylines
+
+
+def test_resample_stroke_edge_cases():
+    from vidden.doodle import _ellipse
+
+    rot = _ellipse(0.0, 0.0, 1.0, 0.5, 8, rot=0.3)
+    assert rot.shape == (8, 2)
+    with pytest.raises(ValueError, match="expected"):
+        resample_stroke(np.zeros(3), 4)
+    with pytest.raises(ValueError, match="empty"):
+        resample_stroke(np.zeros((0, 2)), 4)
+    one = resample_stroke([[1.0, 2.0]], 5)
+    assert one.shape == (5, 2)
+    np.testing.assert_allclose(one, np.repeat([[1.0, 2.0]], 5, axis=0))
+    closed = resample_stroke([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]], 6, closed=True)
+    assert closed.shape == (6, 2)
+    collapsed = resample_stroke([[0.0, 0.0], [0.0, 0.0]], 4)
+    assert collapsed.shape == (4, 2)
+
+
+def test_unpack_doodle_rejects_wrong_length():
+    with pytest.raises(ValueError, match="does not match"):
+        unpack_doodle(np.zeros(3))
 
 
 def test_pack_unpack_roundtrip():

@@ -17,7 +17,13 @@ from __future__ import annotations
 
 import numpy as np
 
-from vidden.demos import load_face_model, load_oil_model, load_stick_model, optimize_stick_model
+from vidden.demos import (
+    load_brendan_model,
+    load_face_model,
+    load_oil_model,
+    load_stick_model,
+    optimize_stick_model,
+)
 from vidden.host.events import (
     bar_index_from_event_x,
     disable_bokeh_context_menu,
@@ -387,6 +393,56 @@ def oil_explorer(model=None, optimize=False):
             "12-D oil as a line of index against value. Seven latent "
             "axes; switch bars after Optimize. Labels colour the scatter "
             "when the model carries ``data_labels``.\n" + _DEFAULT_HEADING
+        ),
+    )
+
+
+def face_explorer(
+    model=None,
+    *,
+    dimensions=None,
+    transpose=None,
+    order=None,
+    invert=None,
+    optimize=False,
+):
+    """Brendan-faces explorer: ``ImageView`` on ``latent_explorer``.
+
+    Default reshape is GPy ``brendan_faces``: ``(20, 28)``, Fortran order,
+    then transpose. Pass Olivetti flags for that dataset.
+    """
+    from vidden.views.image import BRENDAN_IMAGE, ImageView, image_color_limits
+    from vidden.views.stick import largest_training_pose
+
+    if model is None:
+        model = load_brendan_model(optimize=optimize)
+
+    def _flag(name, override, default):
+        if override is not None:
+            return override
+        return getattr(model, name, default)
+
+    flags = {
+        "dimensions": _flag("image_dimensions", dimensions, BRENDAN_IMAGE["dimensions"]),
+        "transpose": _flag("image_transpose", transpose, BRENDAN_IMAGE["transpose"]),
+        "order": _flag("image_order", order, BRENDAN_IMAGE["order"]),
+        "invert": _flag("image_invert", invert, BRENDAN_IMAGE["invert"]),
+    }
+    Y = np.asarray(model.Y, dtype=float)
+    view = ImageView(
+        largest_training_pose(Y),
+        color_limits=image_color_limits(Y, **flags),
+        **flags,
+    )
+    return latent_explorer(
+        model,
+        view,
+        heading=(
+            "### Brendan faces\n"
+            "Greyscale reconstruction, 2-D Bayesian GPLVM. Reshape is "
+            "Fortran order then transpose, as in GPy ``brendan_faces``. "
+            "Optimize, then click the grey plot. Check the face stays "
+            "upright.\n" + _DEFAULT_HEADING
         ),
     )
 

@@ -1,7 +1,7 @@
 ---
 id: 2026-10-27_faces-explorer-readme
 title: README section for the faces explorer demo
-status: Ready
+status: Completed
 priority: Medium
 created: "2026-10-27"
 last_updated: "2026-10-27"
@@ -29,8 +29,8 @@ warning as the stick man.
 
 ## Acceptance Criteria
 
-- [ ] README has a faces demo section
-- [ ] Commands match `examples/faces.py`
+- [x] README has a faces demo section
+- [x] Commands match `examples/faces.py`
 
 ## Related
 
@@ -41,3 +41,7 @@ warning as the stick man.
 ### 2026-10-27
 
 Task created when CIP-0005 was Accepted.
+
+### 2026-10-27
+
+README Brendan faces section with `panel serve examples/faces.py --show`.

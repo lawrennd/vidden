@@ -32,6 +32,15 @@ def test_y_to_xyz_matches_visualize_reshape():
     xyz = y_to_xyz(y)
     assert xyz.shape == (4, 3)
     np.testing.assert_array_equal(xyz, y.reshape(3, 4).T)
+    with pytest.raises(ValueError, match="divisible by 3"):
+        y_to_xyz(np.arange(4, dtype=float))
+
+
+def test_cubic_axis_limits_degenerate_pose_has_span():
+    xyz = np.zeros((3, 3))
+    lim = cubic_axis_limits(xyz)
+    assert lim.shape == (3, 2)
+    assert np.all(lim[:, 1] > lim[:, 0])
 
 
 def test_assemble_latent_writes_two_axes_only():
@@ -184,6 +193,8 @@ def test_bar_index_from_event_x_accepts_numeric_and_factor():
     assert bar_index_from_event_x(-1, 6) is None
     assert bar_index_from_event_x(9, 6) is None
     assert bar_index_from_event_x(None, 6) is None
+    assert bar_index_from_event_x("nope", 6) is None
+    assert bar_index_from_event_x(object(), 6) is None
 
 
 def test_event_has_shift_reads_bokeh_modifiers():
@@ -194,6 +205,11 @@ def test_event_has_shift_reads_bokeh_modifiers():
     assert event_has_shift(_Evt({"shift": True, "ctrl": False, "alt": False}))
     assert not event_has_shift(_Evt({"shift": False}))
     assert not event_has_shift(_Evt(None))
+
+    class _Mods:
+        shift = True
+
+    assert event_has_shift(_Evt(_Mods()))
 
 
 def test_disable_bokeh_context_menu_clears_auto_tool_menu():
@@ -217,6 +233,10 @@ def test_install_bar_x_menu_uses_bokeh_menu_item_click():
     assert isinstance(fig.context_menu, Menu)
     assert len(fig.context_menu.items) == 6
     assert "menu_item_click" in fig.subscribed_events
+    from bokeh.events import MenuItemClick
+
+    fig._trigger_event(MenuItemClick(fig, item="2"))
+    assert picked == ["2"]
 
 
 def test_menu_item_dimension_reads_item_label():
