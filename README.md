@@ -1,5 +1,7 @@
 # vidden
 
+[![Tests](https://github.com/lawrennd/vidden/actions/workflows/test.yml/badge.svg)](https://github.com/lawrennd/vidden/actions/workflows/test.yml)
+
 Latent-space visualisation, independent of the inference library.
 
 `vidden` is the browser explorer that used to live inside
