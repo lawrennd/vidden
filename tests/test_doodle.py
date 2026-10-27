@@ -66,6 +66,17 @@ def test_doodle_view_modify_does_not_change_axes():
     assert view.source.data["xs"][0][0] == xs[0][0]
 
 
+def test_load_face_model_matches_stick_kernel_start():
+    pytest.importorskip("GPy")
+    from vidden.demos import load_face_model
+
+    np.random.seed(0)
+    model = load_face_model()
+    assert model.X.mean.shape[1] == 2
+    np.testing.assert_allclose(np.asarray(model.kern.lengthscale), np.repeat(0.5, 2))
+    np.testing.assert_allclose(np.asarray(model.likelihood.variance).reshape(-1)[0], 0.001)
+
+
 def test_doodle_explorer_builds_without_serving():
     pytest.importorskip("holoviews")
     pytest.importorskip("panel")
@@ -93,5 +104,6 @@ def test_examples_doodle_is_servable_entry():
     host = (root / "src" / "vidden" / "host" / "panel.py").read_text()
     view = (root / "src" / "vidden" / "views" / "doodle.py").read_text()
     assert ".servable()" in example
+    assert "sys.path.insert" in example
     assert ".servable()" not in host
     assert ".servable()" not in view

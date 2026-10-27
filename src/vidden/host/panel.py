@@ -364,8 +364,10 @@ def doodle_explorer(model=None, strokes=None, limits=None, optimize=False):
         view,
         heading=(
             "### Latent doodle space\n"
-            "Generated faces on a smile × roundness grid. Optimize, then "
-            "click the grey plot to synthesize. This is the paper's click-"
-            "to-generate demo, not an interpolation grid.\n" + _DEFAULT_HEADING
+            "Generated faces on a smile × roundness grid, as a 2-D "
+            "Bayesian GPLVM (lengthscale 0.5, like the stick man). "
+            "Optimize, then click the grey plot to synthesize. This is "
+            "the paper's click-to-generate demo, not an interpolation "
+            "grid.\n" + _DEFAULT_HEADING
         ),
     )

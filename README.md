@@ -24,7 +24,9 @@ pip install -e ".[explore,gpy]"
 
 `explore` pulls HoloViews, Panel, and Bokeh. `gpy` is needed for the
 stick-man and doodle demos (GPy plus [pods](https://github.com/lawrennd/pods)
-for the OSU motion data).
+for the OSU motion data). Jupyter imports need this editable install.
+`panel serve examples/...` from the repository root also works without
+it: the example scripts put `src/` on `sys.path`.
 
 ## Demo: OSU stick man
 
@@ -95,8 +97,10 @@ compatibility import; new code should use `vidden.host.panel`.
 
 ## Demo: latent doodle space
 
-Generated cartoon faces on a smile × roundness grid. This is Baxter and
-Anjyo's click-to-synthesize demo, not an interpolation grid.
+Generated cartoon faces on a smile × roundness grid, as a 2-D Bayesian
+GPLVM with the same ARD RBF start as the stick man (lengthscale 0.5,
+noise 0.001). This is Baxter and Anjyo's click-to-synthesize demo, not
+an interpolation grid.
 
 From the repository root:
 

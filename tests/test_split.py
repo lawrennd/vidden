@@ -30,6 +30,8 @@ def test_examples_stick_is_the_servable_entry():
     example = Path(__file__).resolve().parents[1] / "examples" / "stick.py"
     host = Path(__file__).resolve().parents[1] / "src" / "vidden" / "host" / "panel.py"
     views = Path(__file__).resolve().parents[1] / "src" / "vidden" / "views" / "stick.py"
-    assert ".servable()" in example.read_text()
+    text = example.read_text()
+    assert ".servable()" in text
+    assert "sys.path.insert" in text
     assert ".servable()" not in host.read_text()
     assert ".servable()" not in views.read_text()
