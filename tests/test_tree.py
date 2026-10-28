@@ -5,6 +5,7 @@ from vidden.tree import (
     Hierarchy,
     Mapping,
     TreeNode,
+    acclaim_feature_ind,
     assemble_figure,
     cascade,
     chain_connect,
@@ -12,6 +13,9 @@ from vidden.tree import (
     composite_stick,
     figure_pose,
     make_synthetic_hierarchy,
+    mocap_xyz_for_stick,
+    pca_latent,
+    prepare_hgplvm_channels,
     xyz_to_y,
 )
 from vidden.views.stick import y_to_xyz
@@ -182,8 +186,6 @@ def test_tree_explorer_builds_without_serving():
     app = tree_explorer(make_synthetic_hierarchy(n=8))
     assert app is not None
     assert len(app) >= 3
-    default = tree_explorer()
-    assert default is not None
     parent = app[1][0]
     obj = parent.object if hasattr(parent, "object") else parent
     hv.render(obj, backend="bokeh")
@@ -202,3 +204,72 @@ def test_examples_tree_is_servable_entry():
     assert ".servable()" not in core
     assert "hv.DynamicMap" not in host
     assert "streams.Pipe" not in host
+    assert "load_walk_run_tree" in host
+    assert "cmu_mocap" in example or "walk" in example.lower()
+
+
+def test_mocap_height_is_stick_z():
+    xyz = np.array([[1.0, 17.0, -28.0]])
+    np.testing.assert_allclose(mocap_xyz_for_stick(xyz), [[1.0, -28.0, 17.0]])
+
+
+def test_prepare_hgplvm_channels_pins_ground_plane():
+    Y = np.array([[1.5, 17.0, -28.0, 400.0, -10.0]])
+    out = prepare_hgplvm_channels(Y)
+    np.testing.assert_allclose(out[0, :3], [0.0, 17.0, 0.0])
+    assert -90.0 <= out[0, 3] <= 90.0
+
+
+def test_pca_latent_is_two_d():
+    rng = np.random.default_rng(0)
+    X = pca_latent(rng.normal(size=(20, 8)))
+    assert X.shape == (20, 2)
+
+
+def test_walk_run_tree_matches_acclaim_split():
+    pytest.importorskip("pods")
+    from vidden.demos import load_walk_run_tree
+
+    hier = load_walk_run_tree()
+    names = [node.name for node in hier.nodes]
+    assert names == [
+        "skeleton",
+        "abdomen",
+        "legs",
+        "upper body",
+        "left leg",
+        "right leg",
+        "left arm",
+        "head",
+        "right arm",
+    ]
+    assert hier.roots == (0,)
+    assert hier.skel is not None
+    assert hier.nodes[0].children == (1, 2, 3)
+    assert hier.nodes[2].children == (4, 5)
+    assert hier.nodes[3].children == (6, 7, 8)
+    leaves = [i for i, node in enumerate(hier.nodes) if not node.children]
+    assert leaves == [1, 4, 5, 6, 7, 8]
+    n = hier.nodes[0].model.X.shape[0]
+    assert n == 21 + 34
+    labels = hier.nodes[0].model.data_labels
+    assert list(labels[:21]) == ["run"] * 21
+    assert list(labels[21:]) == ["walk"] * 34
+    abd = acclaim_feature_ind(
+        hier.skel,
+        "root",
+        ("lclavicle", "rclavicle", "lowerneck", "lhipjoint", "rhipjoint"),
+    )
+    np.testing.assert_array_equal(hier.nodes[1].feature_ind, abd)
+    assert 0 in set(abd) and 1 in set(abd) and 2 in set(abd)
+    x0 = hier.nodes[0].model.X
+    _, a = cascade(hier, 0, float(x0[0, 0]), float(x0[0, 1]))
+    _, b = cascade(hier, 0, float(x0[-1, 0]), float(x0[-1, 1]))
+    pa, connect = figure_pose(hier, a)
+    pb, _ = figure_pose(hier, b)
+    assert y_to_xyz(pa).shape[0] == len(hier.skel.vertices)
+    assert connect.shape[0] == len(hier.skel.vertices)
+    assert float(np.max(np.abs(pa - pb))) > 0.2
+    # Height lives in stick z after the Acclaim permute.
+    xyz = y_to_xyz(pa)
+    assert float(np.ptp(xyz[:, 2])) > float(np.ptp(xyz[:, 1]))

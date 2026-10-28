@@ -185,11 +185,11 @@ transpose).
 ## Demo: hierarchical GP-LVM
 
 A **tree** of 2-D latent scatters, not another reconstruction on
-`latent_explorer`. The top space is gait (phase × style). Its output
-is the two arm spaces; those reconstruct left and right arms on a
-shared torso (Lawrence and Moore, ICML 2007). Click gait, then move —
-both arms should swing. The figure is one person, not two floating
-chains.
+`latent_explorer`. The default demo is MATLAB `demWalkRun1`: CMU
+subject 35 run (`35_25`) and walk (`35_01`) through pods, split as
+`acclaimSplitHierarchy` (skeleton → abdomen / legs / upper body →
+limbs). Leaves reconstruct one Acclaim skeleton, not cartoon arms.
+Walk and run colour the latent points. Click skeleton, then move.
 
 From the repository root:
 
@@ -201,13 +201,15 @@ Or in Jupyter:
 
 ```python
 from vidden.host.tree import tree_explorer
+from vidden.demos import load_walk_tree, load_walk_run_tree
 
 tree_explorer()
+tree_explorer(load_walk_tree())
 ```
 
-The synthetic tree uses a local interpolant, so it does not need a GPy
-`HGPLVM` class. Dynamics sliders are not in this first pass.
-CMU walk is later.
+Each node is a local interpolant, so the explorer does not need a GPy
+`HGPLVM` class. `make_synthetic_hierarchy` remains for tests without
+pods. Dynamics sliders are not in this pass.
 
 ## What is not here yet
 

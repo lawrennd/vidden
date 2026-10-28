@@ -25,6 +25,7 @@ class TreeNode:
     connect: object = None
     offset: tuple = (0.0, 0.0, 0.0)
     attach: object = None
+    feature_ind: object = None
 
 
 @dataclass
@@ -35,6 +36,8 @@ class Hierarchy:
     roots: tuple = field(default_factory=tuple)
     torso_xyz: object = None
     torso_connect: object = None
+    skel: object = None
+    channel0: object = None
 
     def __post_init__(self):
         if not self.roots:
@@ -198,6 +201,8 @@ def assemble_figure(torso, torso_edges, limbs):
 
 def figure_pose(hierarchy, leaf_ys):
     """Packed composite pose for the current leaf reconstructions."""
+    if hierarchy.skel is not None:
+        return acclaim_pose(hierarchy, leaf_ys)
     leaves = [i for i, node in enumerate(hierarchy.nodes) if not node.children]
     if hierarchy.torso_xyz is None:
         ys = [leaf_ys[i] for i in leaves]
@@ -210,6 +215,179 @@ def figure_pose(hierarchy, leaf_ys):
         parent = 1 if node.attach is None else int(node.attach)
         limbs.append((y_to_xyz(leaf_ys[i]), node.connect, parent))
     return assemble_figure(hierarchy.torso_xyz, hierarchy.torso_connect, limbs)
+
+
+def mocap_xyz_for_stick(xyz):
+    """CMU Acclaim is y-up; ``StickView`` treats height as ``z``.
+
+    MATLAB ``skelModifyHierarchical`` plots ``(x, z, y)``.
+    """
+    xyz = np.asarray(xyz, dtype=float)
+    return xyz[:, [0, 2, 1]]
+
+
+def acclaim_pose(hierarchy, leaf_ys):
+    """Full-skeleton FK from leaf channel slices, then permute for StickView.
+
+    Overlapping MATLAB ``featureInd`` (abdomen also holds clavicle / neck /
+    hip joints) is written in node order so later leaves keep the limb.
+    """
+    skel = hierarchy.skel
+    ch = np.array(hierarchy.channel0, dtype=float, copy=True)
+    for i, node in enumerate(hierarchy.nodes):
+        if node.children or node.feature_ind is None or i not in leaf_ys:
+            continue
+        ind = np.asarray(node.feature_ind, dtype=int)
+        y = np.asarray(leaf_ys[i], dtype=float).reshape(-1)
+        if y.size != ind.size:
+            raise ValueError(
+                f"node {i} reconstructed {y.size} channels, feature_ind has {ind.size}"
+            )
+        ch[ind] = y
+    xyz = mocap_xyz_for_stick(skel.to_xyz(ch))
+    connect = np.asarray(skel.connection_matrix(), dtype=float)
+    return xyz_to_y(xyz), connect
+
+
+def pca_latent(Y, q=2):
+    """Two-D PCA scores, as GPLVM initialisation without GPy."""
+    Y = np.asarray(Y, dtype=float)
+    Yc = Y - Y.mean(axis=0, keepdims=True)
+    if Yc.shape[0] < 2 or Yc.shape[1] < 1:
+        return np.zeros((Yc.shape[0], int(q)))
+    _, S, Vt = np.linalg.svd(Yc, full_matrices=False)
+    q = min(int(q), Vt.shape[0])
+    X = Yc @ Vt[:q].T
+    if X.shape[1] < 2:
+        X = np.hstack([X, np.zeros((X.shape[0], 2 - X.shape[1]))])
+    return X
+
+
+def prepare_hgplvm_channels(Y):
+    """MATLAB ``demWalkRun1``: pin ground-plane root, wrap rotations."""
+    Y = np.array(Y, dtype=float, copy=True)
+    if Y.shape[1] < 3:
+        raise ValueError("Acclaim channels must include root X,Y,Z")
+    Y[:, 0] = 0.0
+    Y[:, 2] = 0.0
+    if Y.shape[1] > 3:
+        wrapped = np.sin(np.radians(Y[:, 3:]))
+        Y[:, 3:] = np.degrees(np.arcsin(np.clip(wrapped, -1.0, 1.0)))
+    return Y
+
+
+def _joint_index(skel, name):
+    want = name.lower()
+    for i, vertex in enumerate(skel.vertices):
+        if vertex.name.lower() == want:
+            return i
+    raise KeyError(f"joint {name!r} is not in the skeleton")
+
+
+def _joint_channel_indices(skel, index):
+    out = []
+    meta = skel.vertices[int(index)].meta
+    for key in ("pos_ind", "rot_ind"):
+        for col in meta.get(key) or []:
+            col = int(col)
+            if col >= 0:
+                out.append(col)
+    return out
+
+
+def acclaim_feature_ind(skel, root_name, stoplist=()):
+    """Channel indices for a MATLAB ``acclaimGetSubSkel`` cut.
+
+    Stoplist joints are included (attachment points) but not recursed.
+    Unlike MATLAB, non-root cuts do not also copy root XYZ — those stay
+    on the abdomen leaf so one ``to_xyz`` can reassemble the figure.
+    """
+    stop = {name.lower() for name in stoplist}
+    out = []
+
+    def visit(index, recurse):
+        out.extend(_joint_channel_indices(skel, index))
+        if not recurse:
+            return
+        for child in skel.vertices[index].children:
+            name = skel.vertices[child].name.lower()
+            visit(child, name not in stop)
+
+    visit(_joint_index(skel, root_name), True)
+    seen = set()
+    uniq = []
+    for col in out:
+        if col not in seen:
+            seen.add(col)
+            uniq.append(col)
+    return np.asarray(uniq, dtype=int)
+
+
+def _labelled_mapping(X, Y, labels=None):
+    model = Mapping(X, Y)
+    if labels is not None:
+        model.data_labels = np.asarray(labels).reshape(-1)
+    return model
+
+
+def _leaf_from_channels(name, skel, Y, root_name, stoplist, labels=None):
+    ind = acclaim_feature_ind(skel, root_name, stoplist)
+    y = np.asarray(Y, dtype=float)[:, ind]
+    X = pca_latent(y)
+    node = TreeNode(name, _labelled_mapping(X, y, labels), feature_ind=ind)
+    return node, X
+
+
+def hierarchy_from_acclaim(skel, Y, labels=None):
+    """MATLAB ``acclaimSplitHierarchy`` on packed Acclaim channels.
+
+    Leaves map to sub-skeleton channels; internal nodes map to concatenated
+    child latents. The host still calls :func:`cascade`. Reconstruction is
+    one ``skel.to_xyz``, not disjoint limb cartoons.
+    """
+    Y = np.asarray(Y, dtype=float)
+    abdomen, x_abd = _leaf_from_channels(
+        "abdomen",
+        skel,
+        Y,
+        "root",
+        ("lclavicle", "rclavicle", "lowerneck", "lhipjoint", "rhipjoint"),
+        labels,
+    )
+    left_leg, x_ll = _leaf_from_channels("left leg", skel, Y, "lhipjoint", ("lfoot",), labels)
+    right_leg, x_rl = _leaf_from_channels("right leg", skel, Y, "rhipjoint", ("rfoot",), labels)
+    left_arm, x_la = _leaf_from_channels("left arm", skel, Y, "lclavicle", ("lwrist",), labels)
+    head, x_hd = _leaf_from_channels("head", skel, Y, "lowerneck", (), labels)
+    right_arm, x_ra = _leaf_from_channels("right arm", skel, Y, "rclavicle", ("rwrist",), labels)
+
+    y_legs = np.hstack([x_ll, x_rl])
+    x_legs = pca_latent(y_legs)
+    legs = TreeNode("legs", _labelled_mapping(x_legs, y_legs, labels), children=(4, 5))
+
+    y_upper = np.hstack([x_la, x_hd, x_ra])
+    x_upper = pca_latent(y_upper)
+    upper = TreeNode("upper body", _labelled_mapping(x_upper, y_upper, labels), children=(6, 7, 8))
+
+    y_root = np.hstack([x_abd, x_legs, x_upper])
+    x_root = pca_latent(y_root)
+    skeleton = TreeNode("skeleton", _labelled_mapping(x_root, y_root, labels), children=(1, 2, 3))
+
+    return Hierarchy(
+        nodes=[
+            skeleton,
+            abdomen,
+            legs,
+            upper,
+            left_leg,
+            right_leg,
+            left_arm,
+            head,
+            right_arm,
+        ],
+        roots=(0,),
+        skel=skel,
+        channel0=Y.mean(axis=0),
+    )
 
 
 def composite_stick(leaf_ys, connects, offsets):

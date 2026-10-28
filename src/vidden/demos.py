@@ -12,6 +12,36 @@ def load_synthetic_tree(n=16):
     return make_synthetic_hierarchy(n=n)
 
 
+def load_walk_tree():
+    """CMU subject 35 motion 04. MATLAB ``demWalk1`` uses this walk."""
+    import pods
+
+    from vidden.tree import hierarchy_from_acclaim, prepare_hgplvm_channels
+
+    data = pods.datasets.cmu_mocap("35", ["04"], sample_every=4)
+    Y = prepare_hgplvm_channels(data["Y"])
+    return hierarchy_from_acclaim(data["skel"], Y)
+
+
+def load_walk_run_tree():
+    """CMU 35_25 run plus 35_01 walk, MATLAB ``demWalkRun1`` slices.
+
+    One shared skeleton root (not two dynamics roots). Walk and run
+    labels colour the latent scatters.
+    """
+    import pods
+
+    from vidden.tree import hierarchy_from_acclaim, prepare_hgplvm_channels
+
+    run = pods.datasets.cmu_mocap("35", ["25"], sample_every=4)
+    walk = pods.datasets.cmu_mocap("35", ["01"], sample_every=4)
+    y_run = prepare_hgplvm_channels(run["Y"])[20:41]
+    y_walk = prepare_hgplvm_channels(walk["Y"])[13:47]
+    Y = np.vstack([y_run, y_walk])
+    labels = np.array(["run"] * len(y_run) + ["walk"] * len(y_walk))
+    return hierarchy_from_acclaim(run["skel"], Y, labels=labels)
+
+
 def load_stick_model(optimize=False):
     """OSU stick-man Bayesian GPLVM without importing matplotlib.
 

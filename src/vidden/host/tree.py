@@ -17,10 +17,11 @@ from vidden.views.stick import StickView, largest_training_pose
 
 _HEADING = (
     "### Hierarchical GP-LVM\n"
-    "Top plot is gait (phase × style). Its output is the two arm "
-    "spaces below; those reconstruct left and right arms on a shared "
-    "torso (Lawrence and Moore, ICML 2007). Click gait, then move — "
-    "both arms should swing. Click one arm plot to move only that arm."
+    "Top plot is the skeleton space (Lawrence and Moore, ICML 2007). "
+    "Its output is abdomen, legs, and upper body; those split into "
+    "the limb leaves. Leaves reconstruct CMU subject 35 walk and run "
+    "(pods) onto one Acclaim skeleton. Click skeleton, then move. "
+    "Click a limb plot to move only that branch."
 )
 
 
@@ -52,7 +53,7 @@ def _set_cursor(source, xy):
     source.data = {"x": [float(xy[0])], "y": [float(xy[1])]}
 
 
-def _node_overlay(model, cursor_xy, title, on_pointer):
+def _node_overlay(model, cursor_xy, title, on_pointer, *, width=320, height=280):
     """HoloViews overlay in the Panel layout; cursor is a Bokeh source.
 
     Pre-rendering with ``hv.render`` and wrapping each node in
@@ -79,8 +80,7 @@ def _node_overlay(model, cursor_xy, title, on_pointer):
         default_tools=plot_tools,
         tools=plot_tools,
     )
-    pts = latent_training_points(X).opts(
-        color="#4c78a8",
+    point_opts = dict(
         size=7,
         xlim=xlim,
         ylim=ylim,
@@ -88,6 +88,11 @@ def _node_overlay(model, cursor_xy, title, on_pointer):
         default_tools=plot_tools,
         tools=plot_tools,
     )
+    pts = latent_training_points(X, getattr(model, "data_labels", None))
+    if "label" in pts.vdims:
+        pts = pts.opts(color="label", cmap="Category10", show_legend=False, **point_opts)
+    else:
+        pts = pts.opts(color="#4c78a8", **point_opts)
     holder = {}
     tracking = {"on": False}
 
@@ -130,8 +135,8 @@ def _node_overlay(model, cursor_xy, title, on_pointer):
         fig.on_event("mousemove", on_move)
 
     overlay = (img * pts).opts(
-        width=320,
-        height=280,
+        width=int(width),
+        height=int(height),
         xlim=xlim,
         ylim=ylim,
         xlabel="",
@@ -160,7 +165,12 @@ def tree_explorer(hierarchy=None):
     hv.extension("bokeh")
 
     if hierarchy is None:
-        hierarchy = make_synthetic_hierarchy()
+        try:
+            from vidden.demos import load_walk_run_tree
+
+            hierarchy = load_walk_run_tree()
+        except ImportError:
+            hierarchy = make_synthetic_hierarchy()
 
     leaves = _leaf_indices(hierarchy)
     root = int(hierarchy.roots[0])
@@ -172,7 +182,11 @@ def tree_explorer(hierarchy=None):
     view = StickView(largest_training_pose(np.vstack([Y_train, packed0[None, :]])), connect)
     view.modify(packed0)
     view_pane = pn.pane.Bokeh(view.fig)
-    status = pn.pane.Markdown("Click gait to track. Both arms should swing on the torso.")
+    root_name = hierarchy.nodes[root].name
+    status = pn.pane.Markdown(
+        f"Click {root_name} to track. Limb leaves reconstruct one skeleton."
+    )
+    plot_w, plot_h = (220, 190) if len(hierarchy.nodes) > 4 else (320, 280)
     cursors = {}
 
     def _apply(index, x, y, *, announce=False, tracking_on=True):
@@ -218,7 +232,9 @@ def tree_explorer(hierarchy=None):
                 _apply(index, x, y, announce=announce, tracking_on=tracking_on)
 
             start_xy = start_pos.get(i, np.array([0.0, 0.0]))
-            scatter, source = _node_overlay(node.model, start_xy, node.name, _pointer)
+            scatter, source = _node_overlay(
+                node.model, start_xy, node.name, _pointer, width=plot_w, height=plot_h
+            )
             cursors[i] = source
             panes.append(scatter)
         rows.append(pn.Row(*panes))

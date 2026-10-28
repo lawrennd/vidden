@@ -21,6 +21,8 @@ from vidden.demos import (
     load_oil_model,
     load_stick_model,
     load_synthetic_tree,
+    load_walk_run_tree,
+    load_walk_tree,
     optimize_stick_model,
 )
 from vidden.host.events import (
@@ -89,6 +91,8 @@ __all__ = [
     "latent_mean_row",
     "latent_posterior_density_grid",
     "load_synthetic_tree",
+    "load_walk_run_tree",
+    "load_walk_tree",
     "load_brendan_model",
     "load_face_model",
     "load_oil_model",
