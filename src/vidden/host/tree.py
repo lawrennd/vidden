@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 
 from vidden.host.events import disable_bokeh_context_menu
-from vidden.host.panel import latent_training_points
+from vidden.host.scatter import latent_training_points
 from vidden.models import latent_array, latent_axis_limits, latent_posterior_density_grid
 from vidden.tree import cascade, figure_pose, make_synthetic_hierarchy
 from vidden.views.stick import StickView, largest_training_pose

@@ -168,7 +168,7 @@ def test_doodle_explorer_reads_strokes_from_model():
 
 def test_latent_training_points_reshapes_short_xy():
     pytest.importorskip("holoviews")
-    from vidden.host.panel import latent_training_points
+    from vidden.host.scatter import latent_training_points
 
     pts = latent_training_points(np.array([0.0, 1.0]))
     assert pts.data.shape[0] == 1

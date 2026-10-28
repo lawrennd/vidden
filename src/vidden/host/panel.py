@@ -31,6 +31,7 @@ from vidden.host.events import (
     install_bar_x_menu,
     menu_item_dimension,
 )
+from vidden.host.scatter import latent_training_points
 from vidden.models import (
     assemble_latent,
     input_sensitivity_values,
@@ -51,25 +52,6 @@ _DEFAULT_HEADING = (
     "Right-click the histogram and choose a dimension for green (x); "
     "double-click a bar also sets green."
 )
-
-
-def latent_training_points(xy, labels=None):
-    """Latent scatter Points. Colour by ``labels`` when length matches."""
-    import holoviews as hv
-
-    xy = np.asarray(xy, dtype=float)
-    if xy.ndim != 2 or xy.shape[1] < 2:
-        xy = np.atleast_2d(xy)
-    xy = xy[:, :2]
-    if labels is not None:
-        lab = np.asarray(labels).reshape(-1)
-        if lab.shape[0] == xy.shape[0]:
-            return hv.Points(
-                {"x": xy[:, 0], "y": xy[:, 1], "label": lab},
-                ["x", "y"],
-                "label",
-            )
-    return hv.Points(xy, ["x", "y"])
 
 
 def latent_explorer(model, view, *, heading=None, optimize=False):

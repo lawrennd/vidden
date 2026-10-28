@@ -49,6 +49,23 @@ def test_explore_reexports_view_and_host():
     assert latent_explorer is host_latent
 
 
+def test_tree_host_does_not_import_panel_explorer():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "src" / "vidden" / "host"
+    tree = (root / "tree.py").read_text()
+    scatter = (root / "scatter.py").read_text()
+    assert "vidden.host.panel" not in tree
+    assert "import panel" not in scatter
+    assert "from panel" not in scatter
+
+
+def test_panel_host_reexports_scatter_points():
+    from vidden.host import panel, scatter
+
+    assert panel.latent_training_points is scatter.latent_training_points
+
+
 def test_examples_stick_is_the_servable_entry():
     from pathlib import Path
 

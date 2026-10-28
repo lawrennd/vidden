@@ -87,7 +87,7 @@ def test_reconstruct_mean_writes_vector_view():
 
 def test_latent_training_points_colour_when_labels_match():
     pytest.importorskip("holoviews")
-    from vidden.host.panel import latent_training_points
+    from vidden.host.scatter import latent_training_points
 
     xy = np.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
     labelled = latent_training_points(xy, [0, 1, 0])
