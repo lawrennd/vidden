@@ -176,19 +176,98 @@ def test_parent_latent_changes_the_figure():
     assert float(np.max(np.abs(pa - pb))) > 0.2
 
 
+def _hv_from_panel(obj):
+    current = obj
+    if hasattr(current, "object"):
+        current = current.object
+    return current
+
+
+def _bokeh_fig(obj):
+    import holoviews as hv
+
+    overlay = hv.render(_hv_from_panel(obj), backend="bokeh")
+    stack = [overlay]
+    while stack:
+        fig = stack.pop()
+        if hasattr(fig, "_trigger_event") and hasattr(fig, "on_event"):
+            return fig
+        stack.extend(getattr(fig, "children", []) or [])
+        stack.extend(getattr(fig, "renderers", []) or [])
+    raise AssertionError("no triggerable Bokeh figure")
+
+
 def test_tree_explorer_builds_without_serving():
     pytest.importorskip("holoviews")
     pytest.importorskip("panel")
     pytest.importorskip("bokeh")
-    import holoviews as hv
     from vidden.host.tree import tree_explorer
 
     app = tree_explorer(make_synthetic_hierarchy(n=8))
     assert app is not None
     assert len(app) >= 3
-    parent = app[1][0]
-    obj = parent.object if hasattr(parent, "object") else parent
-    hv.render(obj, backend="bokeh")
+    _bokeh_fig(app[1][0])
+
+
+def test_tree_explorer_click_cascades_and_can_stop_tracking():
+    pytest.importorskip("holoviews")
+    pytest.importorskip("panel")
+    pytest.importorskip("bokeh")
+    from bokeh.events import MouseMove, Tap
+    from vidden.host.tree import tree_explorer
+
+    hier = make_synthetic_hierarchy(n=8)
+    labels = np.array(["a" if i % 2 == 0 else "b" for i in range(len(hier.nodes[0].model.X))])
+    for node in hier.nodes:
+        node.model.data_labels = labels[: len(node.model.X)]
+    app = tree_explorer(hier)
+    figs = []
+    for row in app[1:-2]:
+        for pane in row:
+            figs.append(_bokeh_fig(pane))
+    parent = figs[0]
+    x1, y1 = (float(v) for v in hier.nodes[0].model.X[5, :2])
+    parent._trigger_event(Tap(parent, x=x1, y=y1))
+    parent._trigger_event(MouseMove(parent, x=None, y=None))
+    parent._trigger_event(MouseMove(parent, x=x1 + 0.05, y=y1))
+    assert "gait" in str(app[-1].object)
+    parent._trigger_event(Tap(parent, x=0.0, y=0.0))
+    parent._trigger_event(MouseMove(parent, x=0.0, y=0.0))
+    assert "Tracking off" in str(app[-1].object)
+
+
+def test_tree_explorer_defaults_to_walk_run_then_synthetic(monkeypatch):
+    pytest.importorskip("holoviews")
+    pytest.importorskip("panel")
+    pytest.importorskip("bokeh")
+    from vidden.host import tree as host_tree
+
+    hier = make_synthetic_hierarchy(n=4)
+    monkeypatch.setattr("vidden.demos.load_walk_run_tree", lambda: hier)
+    app = host_tree.tree_explorer()
+    assert app is not None
+
+    def _boom():
+        raise ImportError("no pods")
+
+    monkeypatch.setattr("vidden.demos.load_walk_run_tree", _boom)
+    fallback = host_tree.tree_explorer()
+    assert fallback is not None
+
+
+def test_set_cursor_accepts_holder_source_or_nothing():
+    pytest.importorskip("bokeh")
+    from bokeh.models import ColumnDataSource
+    from vidden.host.tree import _set_cursor
+
+    _set_cursor(None, (1.0, 2.0))
+    _set_cursor({}, (1.0, 2.0))
+    source = ColumnDataSource(data={"x": [0.0], "y": [0.0]})
+    _set_cursor({"source": source}, (0.3, -0.4))
+    assert source.data["x"] == [0.3]
+    assert source.data["y"] == [-0.4]
+    _set_cursor(source, (1.5, 2.5))
+    assert source.data["x"] == [1.5]
 
 
 def test_examples_tree_is_servable_entry():

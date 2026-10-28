@@ -21,6 +21,21 @@ def _hv_from_panel(obj):
     return current
 
 
+def _bokeh_fig(obj):
+    """Bokeh figure that accepts ``_trigger_event`` after a HoloViews render."""
+    import holoviews as hv
+
+    overlay = hv.render(_hv_from_panel(obj), backend="bokeh")
+    stack = [overlay]
+    while stack:
+        fig = stack.pop()
+        if hasattr(fig, "_trigger_event") and hasattr(fig, "on_event"):
+            return fig
+        stack.extend(getattr(fig, "children", []) or [])
+        stack.extend(getattr(fig, "renderers", []) or [])
+    raise AssertionError("no triggerable Bokeh figure")
+
+
 def test_latent_explorer_renders_and_tracks_pointer():
     pytest.importorskip("holoviews")
     pytest.importorskip("panel")
@@ -157,3 +172,118 @@ def test_latent_training_points_reshapes_short_xy():
 
     pts = latent_training_points(np.array([0.0, 1.0]))
     assert pts.data.shape[0] == 1
+    labelled = latent_training_points(np.array([[0.0, 1.0], [2.0, 3.0]]), labels=["a", "b"])
+    assert "label" in labelled.vdims
+    mismatched = latent_training_points(np.array([[0.0, 1.0]]), labels=["a", "b"])
+    assert "label" not in mismatched.vdims
+
+
+def test_latent_explorer_unlabelled_scatter_and_bar_clicks():
+    pytest.importorskip("holoviews")
+    pytest.importorskip("panel")
+    pytest.importorskip("bokeh")
+    from bokeh.events import DoubleTap, MouseMove, Tap
+    from vidden.host.panel import latent_explorer
+    from vidden.views.vector import VectorView
+
+    model, Y = _tiny_model(labels=False)
+    view = VectorView(Y[0], limits=(-3.0, 3.0))
+    app = latent_explorer(model, view)
+    scatter = _bokeh_fig(app[2][0][0])
+    bars = _bokeh_fig(app[2][0][1])
+    dim_x, dim_y = app[1][0], app[1][1]
+    status = app[3]
+
+    scatter._trigger_event(Tap(scatter, x=0.15, y=-0.2))
+    scatter._trigger_event(MouseMove(scatter, x=None, y=None))
+    scatter._trigger_event(MouseMove(scatter, x=0.25, y=-0.15))
+    other = next(k for k in dim_x.options if k != dim_x.value)
+    dim_x.value = other
+    assert "tracking" in str(status.object)
+    scatter._trigger_event(Tap(scatter, x=0.0, y=0.0))
+    scatter._trigger_event(MouseMove(scatter, x=0.4, y=0.1))
+
+    y_before = dim_y.value
+    bars._trigger_event(Tap(bars, x=float(y_before)))
+    shift = Tap(bars, x=0.0)
+    shift.modifiers = {"shift": True}
+    bars._trigger_event(shift)
+    bars._trigger_event(DoubleTap(bars, x=1.0))
+    bars._trigger_event(Tap(bars, x=99.0))
+    assert dim_x.value in dim_x.options
+
+
+def test_latent_explorer_optimize_reports_failure(monkeypatch):
+    pytest.importorskip("holoviews")
+    pytest.importorskip("panel")
+    pytest.importorskip("bokeh")
+    from vidden.host.panel import latent_explorer
+    from vidden.views.vector import VectorView
+
+    model, Y = _tiny_model()
+
+    def _boom(m, **kwargs):
+        raise RuntimeError("no train")
+
+    monkeypatch.setattr("vidden.host.panel.optimize_stick_model", _boom)
+    app = latent_explorer(model, VectorView(Y[0], limits=(-3.0, 3.0)))
+    app[1][2].clicks = 1
+    assert "failed" in str(app[3].object).lower()
+
+
+def test_latent_explorer_optimize_uses_curdoc_callback(monkeypatch):
+    pytest.importorskip("holoviews")
+    pytest.importorskip("panel")
+    pytest.importorskip("bokeh")
+    import panel as pn
+    from vidden.host.panel import latent_explorer
+    from vidden.views.vector import VectorView
+
+    model, Y = _tiny_model()
+    called = {}
+
+    def _opt(m, **kwargs):
+        called["ok"] = True
+        return m
+
+    class _Doc:
+        session_context = None
+
+        def add_next_tick_callback(self, fn):
+            called["cb"] = fn
+
+    monkeypatch.setattr("vidden.host.panel.optimize_stick_model", _opt)
+    monkeypatch.setattr(pn.state, "curdoc", _Doc(), raising=False)
+    app = latent_explorer(model, VectorView(Y[0], limits=(-3.0, 3.0)))
+    dim_x, dim_y = app[1][0], app[1][1]
+    start_x, start_y = dim_x.value, dim_y.value
+    unused = next(k for k in dim_x.options if k not in (start_x, start_y))
+    dim_x.value = unused
+    dim_y.value = start_x
+    app[1][2].clicks = 1
+    assert "cb" in called
+    called["cb"]()
+    assert called.get("ok") is True
+
+
+def test_doodle_explorer_defaults_strokes_when_model_has_none():
+    pytest.importorskip("holoviews")
+    pytest.importorskip("panel")
+    pytest.importorskip("bokeh")
+    GPy = pytest.importorskip("GPy")
+    from vidden.doodle import DOODLE_LIMITS, FACE_STROKES, make_face_dataset
+    from vidden.host.panel import doodle_explorer
+
+    Y, _, _ = make_face_dataset(n_smile=2, n_round=2)
+    model = GPy.models.GPLVM(Y, 2)
+    app = doodle_explorer(model=model)
+    assert app is not None
+    assert not hasattr(model, "doodle_strokes")
+    again = doodle_explorer(model=model, strokes=FACE_STROKES, limits=DOODLE_LIMITS)
+    assert again is not None
+
+
+def test_disable_bokeh_context_menu_skips_figures_without_menu():
+    from vidden.host.events import disable_bokeh_context_menu
+
+    disable_bokeh_context_menu(object())
