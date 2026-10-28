@@ -1,9 +1,7 @@
-"""Packed stroke vectors for a doodle family.
+"""Packed stroke vectors and generated cartoon faces.
 
-Correspondence (Hungarian matching) is not here. This module is the
-packed ``Y`` row the explorer decodes, plus generated faces with known
-smile and roundness so we can tell whether a latent click does the
-right thing.
+This module does not match strokes or write files. Correspondence is
+:mod:`vidden.doodle.align`. JSON families are :mod:`vidden.doodle.store`.
 """
 
 from __future__ import annotations

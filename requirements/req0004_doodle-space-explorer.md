@@ -45,8 +45,8 @@ anyone with a family of aligned doodles (faces, bugs, …).
 
 ## Notes
 
-Correspondence and the drawing studio are how we *build* a family.
-This requirement is how we *present* one.
+Correspondence and the drawing studio are how we *build* a family
+(REQ-0006). This requirement is how we *present* one.
 
 ## References
 

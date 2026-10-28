@@ -132,8 +132,33 @@ which collapses the face. Optimize first, then click the grey plot.
    switch bars as in the stick demo.
 
 A static grid of decoded stamps is a notebook diagnostic, not how we
-present the space. User-drawn families and the drawing studio are a
-later CIP.
+present the space.
+
+## Demo: doodle studio
+
+Draw a family, save it as JSON, and check stroke correspondence. Matching
+(`vidden.doodle.align`) and files (`vidden.doodle.store`) are separate
+from the Panel hosts.
+
+```bash
+panel serve examples/doodle_studio.py --show
+panel serve examples/doodle_align.py --show
+```
+
+Or in Jupyter:
+
+```python
+from vidden.host.studio import doodle_studio
+from vidden.host.correspondence import doodle_align
+
+doodle_studio()
+doodle_align()
+```
+
+Keep stores a drawing. Click the gallery to show that doodle in grey
+below the pad. Save writes `doodles/<family>/doodles.json`. The
+alignment view colours matched strokes and greys extras. Then pack with
+`align_doodles` and open `doodle_explorer`.
 
 ## Demo: oil flow
 
@@ -215,9 +240,9 @@ pods. Dynamics sliders are not in this pass.
 ## What is not here yet
 
 Olivetti can use the same `ImageView` with different reshape flags;
-there is no separate demo yet. Correspondence, `doodle_studio`, and
-loading `doodles/<family>/` are still on the GPy doodle branch. Static
-GPy plots (`plot`, `plot_latent`, `plot_confidence`) stay in GPy.
+there is no separate demo yet. Static GPy plots (`plot`, `plot_latent`,
+`plot_confidence`) stay in GPy. The matplotlib doodle studio on
+`notebook-latent-doodle-space` is superseded by the Panel studio here.
 
 ## Project management
 

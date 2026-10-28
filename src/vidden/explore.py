@@ -10,6 +10,8 @@ Standalone (from the repository root)::
 
     panel serve examples/stick.py --show
     panel serve examples/doodle.py --show
+    panel serve examples/doodle_studio.py --show
+    panel serve examples/doodle_align.py --show
     panel serve examples/oil.py --show
     panel serve examples/faces.py --show
     panel serve examples/tree.py --show
@@ -32,6 +34,7 @@ from vidden.host.events import (
     install_bar_x_menu,
     menu_item_dimension,
 )
+from vidden.host.correspondence import doodle_align
 from vidden.host.panel import (
     doodle_explorer,
     face_explorer,
@@ -40,6 +43,7 @@ from vidden.host.panel import (
     oil_explorer,
     stick_explorer,
 )
+from vidden.host.studio import doodle_studio
 from vidden.host.tree import tree_explorer
 from vidden.models import (
     assemble_latent,
@@ -71,7 +75,9 @@ __all__ = [
     "ImageView",
     "StickView",
     "VectorView",
+    "doodle_align",
     "doodle_explorer",
+    "doodle_studio",
     "face_explorer",
     "latent_explorer",
     "tree_explorer",

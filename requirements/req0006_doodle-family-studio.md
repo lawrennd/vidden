@@ -1,7 +1,7 @@
 ---
 id: "0006"
 title: "Users can draw, save, load, and align a doodle family"
-status: "Ready"
+status: "In Progress"
 priority: "High"
 created: "2026-10-28"
 last_updated: "2026-10-28"

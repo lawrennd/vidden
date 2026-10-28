@@ -30,6 +30,50 @@ def stroke_polylines(y, strokes=FACE_STROKES):
     return xs, ys
 
 
+def raw_polylines(strokes):
+    """Source columns for an unaligned doodle (list of ``(k, 2)`` arrays)."""
+    xs, ys = [], []
+    for pts in strokes:
+        pts = np.asarray(pts, dtype=float)
+        if pts.ndim != 2 or pts.shape[0] < 2 or not np.isfinite(pts).any():
+            xs.append([])
+            ys.append([])
+            continue
+        xs.append(pts[:, 0].tolist())
+        ys.append(pts[:, 1].tolist())
+    return xs, ys
+
+
+def stroke_figure(strokes, colors=None, limits=DOODLE_LIMITS, title="", width=280, height=280, line_width=2.0):
+    """Bokeh figure of raw polylines. Does not pack, match, or write files."""
+    from bokeh.models import ColumnDataSource, Range1d
+    from bokeh.plotting import figure
+
+    xmin, xmax, ymin, ymax = (float(v) for v in limits)
+    xs, ys = raw_polylines(strokes)
+    if colors is None:
+        colors = ["#111111"] * max(len(xs), 1)
+    colors = list(colors) + ["#111111"] * max(0, len(xs) - len(colors))
+    source = ColumnDataSource({"xs": xs, "ys": ys, "colors": colors[: len(xs)]})
+    fig = figure(
+        width=width,
+        height=height,
+        match_aspect=True,
+        title=title,
+        tools="",
+        toolbar_location=None,
+        x_range=Range1d(xmin, xmax, bounds="auto"),
+        y_range=Range1d(ymin, ymax, bounds="auto"),
+    )
+    fig.multi_line("xs", "ys", source=source, line_color="colors", line_width=line_width)
+    fig.grid.visible = True
+    fig.xaxis.axis_label = None
+    fig.yaxis.axis_label = None
+    if hasattr(fig, "context_menu"):
+        fig.context_menu = None
+    return fig, source
+
+
 class DoodleView:
     """Packed doodle as a Bokeh ``multi_line``.
 
