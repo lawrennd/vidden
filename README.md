@@ -1,6 +1,7 @@
 # vidden
 
 [![Tests](https://github.com/lawrennd/vidden/actions/workflows/test.yml/badge.svg)](https://github.com/lawrennd/vidden/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/lawrennd/vidden/graph/badge.svg)](https://codecov.io/gh/lawrennd/vidden)
 
 Latent-space visualisation, independent of the inference library.
 
