@@ -35,3 +35,34 @@ jobs:
 
       - name: Run tests
         run: python -m pytest tests -q --tb=short
+
+  # Single-matrix coverage upload (informational). The 3.11/3.12 matrix stays bare pytest.
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install vidden with explorer extras
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,explore]"
+
+      - name: pytest with coverage
+        run: python -m pytest tests -q --tb=short --cov=vidden --cov-report=xml --cov-report=term
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: ubuntu-3.12
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
