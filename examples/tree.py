@@ -1,4 +1,4 @@
-"""Serve the hierarchical GP-LVM explorer.
+"""Serve the hierarchical GP-LVM explorer (CMU walk + run via pods).
 
 From the repository root::
 
